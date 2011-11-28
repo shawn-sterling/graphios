@@ -43,10 +43,10 @@ define host {
 
 Graphios would then send the following to carbon:
 
-    monitoring.nagios01.pingto.myhost.rta 4.029 nagios\_timet
-    monitoring.nagios01.pingto.myhost.pl 0 nagios\_timet
-    monitoring.nagios01.pingto.myhost.rtmax 4.996 nagios\_timet
-    monitoring.nagios01.pingto.myhost.rtmin 3.066 nagios\_timet
+    monitoring.nagios01.pingto.myhost.rta 4.029 nagios_timet
+    monitoring.nagios01.pingto.myhost.pl 0 nagios_timet
+    monitoring.nagios01.pingto.myhost.rtmax 4.996 nagios_timet
+    monitoring.nagios01.pingto.myhost.rtmin 3.066 nagios_timet
 
 The nagios\_timet is the nagios provided unix epoch time when the plugin results were received.
 The idea behind 'pingto' is that this is the pingtime from nagios01 to myhost.
@@ -71,9 +71,9 @@ define service {
 
 Would give the following:
 
-    datacenter01.webservers.myhost.nrdp.load.load1 8.41 nagios\_timet
-    datacenter01.webservers.myhost.nrdp.load.load5 6.06 nagios\_timet
-    datacenter01.webservers.myhost.nrdp.load.load15 5.58 nagios\_timet
+    datacenter01.webservers.myhost.nrdp.load.load1 8.41 nagios_timet
+    datacenter01.webservers.myhost.nrdp.load.load5 6.06 nagios_timet
+    datacenter01.webservers.myhost.nrdp.load.load15 5.58 nagios_timet
 
 (nrdp = what provided the results, load = plugin name, the load1,load5, and load15 are from the plugin).
 
@@ -269,7 +269,7 @@ define service {
 
 Which gives me:
 
-    monitoring.nagios01.mysql.myhost.threads\_connected
+    monitoring.nagios01.mysql.myhost.threads_connected
 
 See the Documentation (above) for more explanation on how this works.
 
