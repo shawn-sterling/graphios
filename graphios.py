@@ -30,13 +30,17 @@ import logging
 import logging.handlers
 import time
 import socket
+import cPickle as pickle
+import struct
 
 ############################################################
 ##### You will likely need to change some of the below #####
 
 # carbon server info
 carbon_server = '127.0.0.1'
-carbon_port = 2003
+
+# carbon pickle receiver port (normally 2004)
+carbon_port = 2004
 
 # nagios spool directory
 spool_directory = '/var/spool/nagios/graphios'
@@ -95,7 +99,8 @@ def send_carbon(carbon_list):
     """
     global sock
     global sleep_time
-    message = '\n'.join(carbon_list) + '\n'
+    message = convert_pickle(carbon_list)
+    #message = '\n'.join(carbon_list) + '\n'
     try:
         sock.sendall(message)
         log.debug("sending to carbon: %s" % message)
@@ -118,6 +123,22 @@ def send_carbon(carbon_list):
             log.debug("sleeping %s" % (sleep_time))
             time.sleep(sleep_time)
         return False
+
+
+def convert_pickle(carbon_list):
+    """
+        Converts a list into pickle formatted message and returns it
+    """
+    pickle_list = []
+    for metric in carbon_list:
+        path, value, timestamp = metric.split(" ")
+        metric_tuple = (path, (timestamp, value))
+        pickle_list.append(metric_tuple)
+
+    payload = pickle.dumps(pickle_list)
+    header = struct.pack("!L", len(payload))
+    message = header + payload
+    return message
 
 
 def process_host_data(file_name, delete_after=0):
