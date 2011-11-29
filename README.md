@@ -43,10 +43,10 @@ define host {
 
 Graphios would then send the following to carbon:
 
-    monitoring.nagios01.pingto.myhost.rta 4.029 nagios_timet
-    monitoring.nagios01.pingto.myhost.pl 0 nagios_timet
-    monitoring.nagios01.pingto.myhost.rtmax 4.996 nagios_timet
-    monitoring.nagios01.pingto.myhost.rtmin 3.066 nagios_timet
+monitoring.nagios01.pingto.myhost.rta 4.029 nagios\_timet
+monitoring.nagios01.pingto.myhost.pl 0 nagios\_timet
+monitoring.nagios01.pingto.myhost.rtmax 4.996 nagios\_timet
+monitoring.nagios01.pingto.myhost.rtmin 3.066 nagios\_timet
 
 The nagios\_timet is the nagios provided unix epoch time when the plugin results were received.
 The idea behind 'pingto' is that this is the pingtime from nagios01 to myhost.
@@ -71,9 +71,9 @@ define service {
 
 Would give the following:
 
-    datacenter01.webservers.myhost.nrdp.load.load1 8.41 nagios_timet
-    datacenter01.webservers.myhost.nrdp.load.load5 6.06 nagios_timet
-    datacenter01.webservers.myhost.nrdp.load.load15 5.58 nagios_timet
+datacenter01.webservers.myhost.nrdp.load.load1 8.41 nagios\_timet
+datacenter01.webservers.myhost.nrdp.load.load5 6.06 nagios\_timet
+datacenter01.webservers.myhost.nrdp.load.load15 5.58 nagios\_timet
 
 (nrdp = what provided the results, load = plugin name, the load1,load5, and load15 are from the plugin).
 
@@ -183,7 +183,9 @@ The graphios.py can run as whatever user you want, as long as you have access to
 
 # carbon server info
 carbon_server = '127.0.0.1'
-carbon_port = 2003
+
+# carbon pickle receiver port (normally 2004)
+carbon_port = 2004
 
 # nagios spool directory
 spool_directory = '/var/spool/nagios/graphios'
@@ -253,10 +255,10 @@ define host {
 
 Which would create the following graphite entries with data from the check\_host\_alive plugin:
 
-    monitoring.nagios01.pingto.myhost.rta
-    monitoring.nagios01.pingto.myhost.rtmin
-    monitoring.nagios01.pingto.myhost.rtmax
-    monitoring.nagios01.pingto.myhost.pl
+monitoring.nagios01.pingto.myhost.rta
+monitoring.nagios01.pingto.myhost.rtmin
+monitoring.nagios01.pingto.myhost.rtmax
+monitoring.nagios01.pingto.myhost.pl
 
 <pre>
 define service {
@@ -269,7 +271,7 @@ define service {
 
 Which gives me:
 
-    monitoring.nagios01.mysql.myhost.threads_connected
+monitoring.nagios01.mysql.myhost.threads\_connected
 
 See the Documentation (above) for more explanation on how this works.
 
@@ -315,7 +317,7 @@ define command{
 }
 </pre>
 
-Instead of just moving the file; move it then copy it, then we can point graphios at the copy. 
+Instead of just moving the file; move it then copy it, then we can point graphios at the copy.
 
 You can do this by either:
 
