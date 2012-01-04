@@ -345,7 +345,7 @@ You should now be able to start at step 3 on the above instructions.
 
 # Trouble getting it working?
 
-I will help the first few people that have problems getting this working, and update the documentation on what is not clear. I am not offering to teach you how to setup Nagios, this is for intermediate+ nagios users. Email me at shawn@systemtemplar.com and I will do what I can to help.
+I will help the first few people that have problems getting this working, and update the documentation on what is not clear. I am not offering to teach you how to setup Nagios, this is for intermediate+ nagios users. Email me at shawn@systemtemplar.org and I will do what I can to help.
 
 # Got it working?
 
@@ -361,4 +361,4 @@ I'm open to any feedback / patches / suggestions.
 
 I'm still learning python so any python advice would be much appreciated.
 
-Shawn Sterling shawn@systemtemplar.com
+Shawn Sterling shawn@systemtemplar.org
