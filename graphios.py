@@ -215,8 +215,9 @@ rta=1.066ms;5.000;10.000;0; pl=0%;5;10;; rtmax=4.368ms;;;; rtmin=0.196ms;;;;
             continue
         if graphite_postfix != "":
             carbon_string = carbon_string + "%s." % graphite_postfix
-        graphite_lines.extend(process_host_perf_data(carbon_string, \
-            host_perf_data, time))
+        if host_perf_data != "":
+            graphite_lines.extend(process_host_perf_data(carbon_string, \
+                host_perf_data, time))
 
     handle_file(file_name, graphite_lines, test_mode, delete_after)
 
@@ -321,6 +322,9 @@ def process_service_data(file_name, delete_after=0):
         carbon_string = ""
         for var in variables:
             if re.search("::", var):
+                var_name = var.split('::')[0]
+                if var_name == 'SERVICECHECKCOMMAND':
+                    continue
                 (var_name, value) = var.split('::')
             else:
                 var_name = ""
