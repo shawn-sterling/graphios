@@ -333,7 +333,7 @@ def process_service_data(file_name, delete_after=0):
             if var_name == 'HOSTNAME':
                 host_name = value
             if var_name == 'SERVICEPERFDATA':
-                service_perf_data = value
+                service_perf_data = value.replace('/', '_')
             if var_name == 'GRAPHITEPOSTFIX':
                 value = re.sub("\s", "", value)
                 if value != "$_SERVICEGRAPHITEPOSTFIX$":
