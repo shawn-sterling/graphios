@@ -54,6 +54,8 @@ case "$1" in
   restart|reload)
         restart
         ;;
+  status)
+        status $prog
   *)
         echo "Usage: service graphios {start|stop|restart|reload}"
         RETVAL=2
