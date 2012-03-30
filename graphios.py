@@ -338,7 +338,7 @@ def process_service_data(file_name, delete_after=0):
                 var_name = var.split('::')[0]
                 if var_name == 'SERVICECHECKCOMMAND':
                     continue
-                (var_name, value) = var.split('::')
+                value = var[len(var_name)+2:]
             else:
                 var_name = ""
             if var_name == 'TIMET':
