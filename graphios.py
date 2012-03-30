@@ -225,23 +225,12 @@ rta=1.066ms;5.000;10.000;0; pl=0%;5;10;; rtmax=4.368ms;;;; rtmin=0.196ms;;;;
                 value = re.sub("\s", "", value)
                 if str(value) != "$_HOSTGRAPHITEPREFIX$":
                     graphite_prefix = value
-        if graphite_prefix == "" and graphite_postfix == "":
-# uncomment below if you are troubleshooting a weird plugin.
-#            log.debug("can't find graphiteprefix and postfix for %s in %s" % (
-#                line, file_name))
+
+        if host_perf_data == "":
             continue
-        if graphite_prefix != "":
-            carbon_string = "%s." % graphite_prefix
-        if host_name != "":
-            carbon_string = carbon_string + "%s." % host_name
-        else:
-            log.debug("hostname not found for %s in %s" % (line, file_name))
-            continue
-        if graphite_postfix != "":
-            carbon_string = carbon_string + "%s." % graphite_postfix
-        if host_perf_data != "":
-            graphite_lines.extend(process_host_perf_data(carbon_string, \
-                host_perf_data, time))
+        carbon_string = build_carbon_metric(graphite_prefix, host_name, graphite_postfix)
+        if carbon_string:
+            graphite_lines.extend(process_host_perf_data(carbon_string, host_perf_data, time))
 
     handle_file(file_name, graphite_lines, test_mode, delete_after)
 
@@ -370,25 +359,38 @@ def process_service_data(file_name, delete_after=0):
         if not re.search("=", service_perf_data):
             # no perfdata to parse, so we're done
             continue
-        if graphite_prefix == "" and graphite_postfix == "":
-# uncomment below if you are troubleshooting a weird plugin.
-#            log.debug("can't find graphite prefix or postfix in %s on %s" % (
-#                line, file_name))
-            continue
-        if graphite_prefix is not "":
-            carbon_string = "%s." % graphite_prefix
-        if host_name is not "":
-            carbon_string = carbon_string + "%s." % host_name
-        else:
-            log.debug("can't find hostname in %s on %s" % (line, file_name))
-            continue
-        if graphite_postfix is not "":
-            carbon_string = carbon_string + "%s." % graphite_postfix
-        graphite_lines.extend(process_service_perf_data(carbon_string, \
-            service_perf_data, time))
+
+        carbon_string = build_carbon_metric(graphite_prefix, host_name, graphite_postfix)
+        if carbon_string:
+            graphite_lines.extend(process_service_perf_data(carbon_string, service_perf_data, time))
 
     handle_file(file_name, graphite_lines, test_mode, delete_after)
 
+def build_carbon_metric(graphite_prefix, host_name, graphite_postfix):
+    """       
+       builds the metric to send to carbon, returns empty string if
+       there's insufficient data and we shouldn't forward to carbon.
+    """
+
+    if (graphite_prefix == "" and graphite_postfix == ""):
+# uncomment below if you are troubleshooting a weird plugin.
+#            log.debug("can't find graphite prefix or postfix in %s on %s" % (
+#                line, file_name))
+            return ""
+
+    carbon_string = ""
+    if graphite_prefix is not "":
+        carbon_string = "%s." % graphite_prefix
+    if host_name is not "":
+        carbon_string = carbon_string + "%s." % host_name
+    else:
+        log.debug("can't find hostname in %s on %s" % (line, file_name))
+        return ""
+        
+    if graphite_postfix is not "":
+        carbon_string = carbon_string + "%s." % graphite_postfix
+
+    return carbon_string
 
 def process_perf_string(nagios_perf_string):
     """
