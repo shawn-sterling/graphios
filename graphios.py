@@ -382,7 +382,7 @@ def build_carbon_metric(graphite_prefix, host_name, graphite_postfix):
     if graphite_prefix is not "":
         carbon_string = "%s." % graphite_prefix
     if host_name is not "":
-        carbon_string = carbon_string + "%s." % host_name
+        carbon_string = carbon_string + "%s." % host_name.replace('.','_')
     else:
         log.debug("can't find hostname in %s on %s" % (line, file_name))
         return ""
