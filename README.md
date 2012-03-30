@@ -212,6 +212,23 @@ test_mode = False
 
 For the first time getting this running, just run at the console (vs using the init script). You may want to set log\_level to 'DEBUG' and test\_mode to True if you want to see what will be sent to graphite. Do not forget to change them back after, as the DEBUG log\_level is very verbose, there is a log limit, but why trash disk when you don't have to?
 
+Some of these can also be set via command line parameters:
+<pre>
+$ ./graphios.py -h
+
+Usage: graphios.py [options]
+sends nagios performance data to carbon.
+
+
+Options:
+  -h, --help            show this help message and exit
+  -v, --verbose         sets logging to DEBUG level
+  --spool-directory=SPOOL_DIRECTORY
+                        where to look for nagios performance data
+  --log-file=LOG_FILE   file to log to
+
+</pre>
+
 
 (4) Optional init script: graphios
 ----------------------------------

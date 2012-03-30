@@ -32,6 +32,8 @@ import time
 import socket
 import cPickle as pickle
 import struct
+from optparse import OptionParser
+
 
 ############################################################
 ##### You will likely need to change some of the below #####
@@ -64,15 +66,37 @@ test_mode = False
 ##### You should stop changing things unless you know what you are doing #####
 ##############################################################################
 
+parser = OptionParser("""usage: %prog [options]
+sends nagios performance data to carbon.
+""")
+
+parser.add_option('-v', "--verbose", action="store_true", dest="verbose",
+                  help="sets logging to DEBUG level")
+parser.add_option("--spool-directory", dest="spool_directory",
+                  default=spool_directory,
+                  help="where to look for nagios performance data")
+parser.add_option("--log-file", dest="log_file",
+                  default=log_file,
+                  help="file to log to")
+
 sock = socket.socket()
 log = logging.getLogger('log')
-log.setLevel(log_level)
-log_handler = logging.handlers.RotatingFileHandler(log_file,
-    maxBytes=log_max_size, backupCount=4)
-f = logging.Formatter("%(asctime)s %(filename)s %(levelname)s %(message)s",
-    "%B %d %H:%M:%S")
-log_handler.setFormatter(f)
-log.addHandler(log_handler)
+
+def configure(opts):
+    global spool_directory
+
+    log_handler = logging.handlers.RotatingFileHandler(opts.log_file, maxBytes=log_max_size, backupCount=4)
+    f = logging.Formatter("%(asctime)s %(filename)s %(levelname)s %(message)s",
+                          "%B %d %H:%M:%S")
+    log_handler.setFormatter(f)
+    log.addHandler(log_handler)
+    
+    if opts.verbose:
+        log.setLevel(logging.DEBUG)
+    else:
+        log.setLevel(log_level)
+
+    spool_directory = opts.spool_directory
 
 
 def connect_carbon():
@@ -446,4 +470,6 @@ def main():
 
 
 if __name__ == '__main__':
+    (options,args) = parser.parse_args()
+    configure(options)
     main()
