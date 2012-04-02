@@ -171,7 +171,7 @@ rta=1.066ms;5.000;10.000;0; pl=0%;5;10;; rtmax=4.368ms;;;; rtmin=0.196ms;;;;
     try:
         f = open(file_name, "r")
         file_array = f.readlines()
-        f.close
+        f.close()
     except Exception, e:
         log.critical("Can't open file:%s error: %s" % (file_name, e))
         sys.exit(2)
@@ -306,7 +306,7 @@ def process_service_data(file_name, delete_after=0):
     try:
         f = open(file_name, "r")
         file_array = f.readlines()
-        f.close
+        f.close()
     except Exception, e:
         log.critical("Can't open file:%s error: %s" % (file_name, e))
         sys.exit(2)
