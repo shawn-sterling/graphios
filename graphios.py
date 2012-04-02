@@ -82,15 +82,17 @@ parser.add_option("--log-file", dest="log_file",
 sock = socket.socket()
 log = logging.getLogger('log')
 
+
 def configure(opts):
     global spool_directory
 
-    log_handler = logging.handlers.RotatingFileHandler(opts.log_file, maxBytes=log_max_size, backupCount=4)
+    log_handler = logging.handlers.RotatingFileHandler(
+        opts.log_file, maxBytes=log_max_size, backupCount=4)
     f = logging.Formatter("%(asctime)s %(filename)s %(levelname)s %(message)s",
                           "%B %d %H:%M:%S")
     log_handler.setFormatter(f)
     log.addHandler(log_handler)
-    
+
     if opts.verbose:
         log.setLevel(logging.DEBUG)
     else:
@@ -228,9 +230,11 @@ rta=1.066ms;5.000;10.000;0; pl=0%;5;10;; rtmax=4.368ms;;;; rtmin=0.196ms;;;;
 
         if host_perf_data == "":
             continue
-        carbon_string = build_carbon_metric(graphite_prefix, host_name, graphite_postfix)
+        carbon_string = build_carbon_metric(
+            graphite_prefix, host_name, graphite_postfix)
         if carbon_string:
-            graphite_lines.extend(process_host_perf_data(carbon_string, host_perf_data, time))
+            graphite_lines.extend(process_host_perf_data(
+                    carbon_string, host_perf_data, time))
 
     handle_file(file_name, graphite_lines, test_mode, delete_after)
 
@@ -338,7 +342,7 @@ def process_service_data(file_name, delete_after=0):
                 var_name = var.split('::')[0]
                 if var_name == 'SERVICECHECKCOMMAND':
                     continue
-                value = var[len(var_name)+2:]
+                value = var[len(var_name) + 2:]
             else:
                 var_name = ""
             if var_name == 'TIMET':
@@ -360,14 +364,17 @@ def process_service_data(file_name, delete_after=0):
             # no perfdata to parse, so we're done
             continue
 
-        carbon_string = build_carbon_metric(graphite_prefix, host_name, graphite_postfix)
+        carbon_string = build_carbon_metric(
+            graphite_prefix, host_name, graphite_postfix)
         if carbon_string:
-            graphite_lines.extend(process_service_perf_data(carbon_string, service_perf_data, time))
+            graphite_lines.extend(process_service_perf_data(
+                    carbon_string, service_perf_data, time))
 
     handle_file(file_name, graphite_lines, test_mode, delete_after)
 
+
 def build_carbon_metric(graphite_prefix, host_name, graphite_postfix):
-    """       
+    """
        builds the metric to send to carbon, returns empty string if
        there's insufficient data and we shouldn't forward to carbon.
     """
@@ -382,15 +389,16 @@ def build_carbon_metric(graphite_prefix, host_name, graphite_postfix):
     if graphite_prefix is not "":
         carbon_string = "%s." % graphite_prefix
     if host_name is not "":
-        carbon_string = carbon_string + "%s." % host_name.replace('.','_')
+        carbon_string = carbon_string + "%s." % host_name.replace('.', '_')
     else:
         log.debug("can't find hostname in %s on %s" % (line, file_name))
         return ""
-        
+
     if graphite_postfix is not "":
         carbon_string = carbon_string + "%s." % graphite_postfix
 
     return carbon_string
+
 
 def process_perf_string(nagios_perf_string):
     """
@@ -472,6 +480,6 @@ def main():
 
 
 if __name__ == '__main__':
-    (options,args) = parser.parse_args()
+    (options, args) = parser.parse_args()
     configure(options)
     main()
