@@ -2,6 +2,12 @@
 #
 # Copyright (C) 2011  Shawn Sterling <shawn@systemtemplar.org>
 #
+# With contributions from:
+#
+# Juan Jose Presa <juanjop@gmail.com>
+# Ranjib Dey <dey.ranjib@gmail.com>
+# Ryan Davis <https://github.com/ryepup>
+#
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
@@ -381,20 +387,20 @@ def build_carbon_metric(graphite_prefix, host_name, graphite_postfix):
 
     if (graphite_prefix == "" and graphite_postfix == ""):
 # uncomment below if you are troubleshooting a weird plugin.
-#            log.debug("can't find graphite prefix or postfix in %s on %s" % (
-#                line, file_name))
-            return ""
+#       log.debug("can't find graphite prefix or postfix in %s on %s" % (
+#           line, file_name))
+        return ""
 
     carbon_string = ""
-    if graphite_prefix is not "":
+    if graphite_prefix != "":
         carbon_string = "%s." % graphite_prefix
-    if host_name is not "":
+    if host_name != "":
         carbon_string = carbon_string + "%s." % host_name.replace('.', '_')
     else:
         log.debug("can't find hostname in %s on %s" % (line, file_name))
         return ""
 
-    if graphite_postfix is not "":
+    if graphite_postfix != "":
         carbon_string = carbon_string + "%s." % graphite_postfix
 
     return carbon_string
@@ -433,7 +439,7 @@ def process_service_perf_data(carbon_string, perf_data, time):
     d = dict.fromkeys(perf_data, 0)
     for c in perf_data:
         d[c] += 1
-    if d['='] is 1:
+    if d['='] == 1:
         (name, value) = process_perf_string(perf_data)
         new_line = "%s%s %s %s" % (carbon_string, name, value, time)
         log.debug("new line = %s" % (new_line))
