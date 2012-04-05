@@ -18,6 +18,8 @@
 [ "$NETWORKING" = "no" ] && exit 0
 
 prog="/opt/nagios/bin/graphios.py"
+# or use the command line options:
+#prog="/opt/nagios/bin/graphios.py --log-file=/dir/mylog.log --spool-directory=/dir/my/sool"
 GRAPHIOS_USER="nagios"
 RETVAL=0
 
