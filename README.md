@@ -210,7 +210,7 @@ test_mode = False
 ##############################################################################
 </pre>
 
-For the first time getting this running, just run at the console (vs using the init script). You may want to set log\_level to 'DEBUG' and test\_mode to True if you want to see what will be sent to graphite. Do not forget to change them back after, as the DEBUG log\_level is very verbose, there is a log limit, but why trash disk when you don't have to?
+For the first time getting this running, just run at the console (vs using the init script). You may want to set log\_level to 'DEBUG' and test\_mode to True if you want to see what will be sent to graphite. Do not forget to change them back after, as the DEBUG log\_level is very verbose, there is a log limit, but why thrash disk when you don't have to?
 
 Some of these can also be set via command line parameters:
 <pre>
@@ -235,15 +235,19 @@ Options:
 
 You don't need an init script if you don't want one. For the first time you may want to run graphios.py at console.
 
+<pre>
 cp graphios.init /etc/init.d/graphios
 chown root:root /etc/init.d/graphios
 chmod 750 /etc/init.d/graphios
+</pre>
 
 #### NOTE: You may need to change the location and username that the script runs as. this slightly depending on where you decided to put graphios.py
 
 The lines you will likely have to change:
 <pre>
 prog="/opt/nagios/bin/graphios.py"
+# or use the command line options:
+#prog="/opt/nagios/bin/graphios.py --log-file=/dir/mylog.log --spool-directory=/dir/my/sool"
 GRAPHIOS_USER="nagios"
 </pre>
 
