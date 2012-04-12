@@ -25,7 +25,7 @@ RETVAL=0
 
 start () {
         echo -n "Starting $prog"
-        /bin/su - $GRAPHIOS_USER -c "$prog &"
+        /usr/bin/sudo -u $GRAPHIOS_USER  "$prog" &
         RETVAL=$?
         [ $RETVAL -eq 0 ] && success || failure
         echo
