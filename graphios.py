@@ -451,6 +451,8 @@ def process_spool_dir(directory):
     """
         processes the files in the spool directory
     """
+    log.debug("Processing spool directory %s", directory)
+    num_files = 0
     perfdata_files = os.listdir(directory)
     for perfdata_file in perfdata_files:
         if perfdata_file == "host-perfdata" \
@@ -459,8 +461,11 @@ def process_spool_dir(directory):
         file_dir = os.path.join(directory, perfdata_file)
         if re.match('host-perfdata\.', perfdata_file):
             process_host_data(file_dir, 1)
+            num_files += 1
         if re.match('service-perfdata\.', perfdata_file):
             process_service_data(file_dir, 1)
+            num_files += 1
+    log.info("Processed %s files in %s", num_files, directory)
 
 
 def main():
