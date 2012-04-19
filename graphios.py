@@ -117,10 +117,12 @@ def connect_carbon():
     """
         Connects to Carbon server
     """
+    log.debug("Connecting to carbon at %s:%s", carbon_server, carbon_port)
     global sock
     sock = socket.socket()
     try:
         sock.connect((carbon_server, carbon_port))
+        log.debug("connected")
         return True
     except Exception, ex:
         log.warning("Can't connect to carbon: %s:%s %s" % (carbon_server,
