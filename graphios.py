@@ -163,7 +163,7 @@ def convert_pickle(carbon_list):
     """
     pickle_list = []
     for metric in carbon_list:
-        path, value, timestamp = metric.split(" ")
+        path, value, timestamp = re.split("\s+",metric.strip())
         metric_tuple = (path, (timestamp, value))
         pickle_list.append(metric_tuple)
 
@@ -421,8 +421,12 @@ def process_perf_string(nagios_perf_string):
         ignores the UOM.
     """
 #    log.debug("perfstring:%s" % (nagios_perf_string))
+    (name, value) = (None,None)
     tmp = re.findall("=?[^;]*", nagios_perf_string)
-    (name, value) = tmp[0].split('=')
+    try:
+        (name, value) = tmp[0].split('=')
+    except ValueError:
+        log.error('Bad perf string %s',(nagios_perf_string))
     value = re.sub('[a-zA-Z]', '', value)
     value = re.sub('\%', '', value)
     return name, value
