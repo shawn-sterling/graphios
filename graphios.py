@@ -126,7 +126,7 @@ def send_carbon(carbon_list):
     """
         Sends a list to Carbon, we postpend every entry with a \n as per
         carbon documentation.
-        If we can't connect to carbin, it sleeps, and doubles sleep_time
+        If we can't connect to carbon, it sleeps, and doubles sleep_time
         until it hits sleep_max.
     """
     global sock
@@ -138,7 +138,7 @@ def send_carbon(carbon_list):
         log.debug("sending to carbon: %s" % message)
         return True
     except Exception, e:
-        log.critical("Can't send message to carbon error:%s" % (e))
+        log.critical("Can't send message to carbon error:%s" % e)
         while True:
             sock.close()
             if connect_carbon():
@@ -148,11 +148,11 @@ def send_carbon(carbon_list):
                 if sleep_time < sleep_max:
                     sleep_time = sleep_time + sleep_time
                     log.warning("Carbon not responding. Increasing " + \
-                        "sleep_time to %s." % (sleep_time))
+                        "sleep_time to %s." % sleep_time)
                 else:
                     log.warning("Carbon not responding. Sleeping %s" % \
-                        (sleep_time))
-            log.debug("sleeping %s" % (sleep_time))
+                        sleep_time)
+            log.debug("sleeping %s" % sleep_time)
             time.sleep(sleep_time)
         return False
 
@@ -255,12 +255,12 @@ def handle_file(file_name, graphite_lines, test_mode, delete_after):
     """
     if test_mode:
         if len(graphite_lines) > 0:
-            log.debug("graphite_lines:%s" % (graphite_lines))
+            log.debug("graphite_lines:%s" % graphite_lines)
     else:
         if len(graphite_lines) > 0:
             if send_carbon(graphite_lines):
                 if delete_after:
-                    log.debug("removing file, %s" % (file_name))
+                    log.debug("removing file, %s" % file_name)
                     try:
                         os.remove(file_name)
                     except Exception, e:
@@ -311,7 +311,7 @@ def process_nagios_perf_data(carbon_string, perf_data, time):
         ignores the UOM.
     """
     graphite_lines = []
-    log.debug('perfdata:%s' % (perf_data))
+    log.debug('perfdata:%s' % perf_data)
     matches = re.finditer(r'(?P<perfdata>(?P<label>.*?)=(?P<value>[0-9\.]+)\S*\s?)', perf_data)
     parsed_perfdata = [match.groupdict() for match in matches]
     log.debug('parsed_perfdata:%s' % parsed_perfdata)
