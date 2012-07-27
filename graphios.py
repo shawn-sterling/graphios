@@ -277,22 +277,51 @@ def handle_file(file_name, graphite_lines, test_mode, delete_after):
                     log.critical("couldn't remove file %s error:%s" % (
                         file_name, e))
 
+                    
+def process_service_perf_data(carbon_string, perf_data, time):
+    """
+       given the nagios perfdata, and some variables we return a list of
+       carbon formatted strings.
+    """
+    return process_nagios_perf_data(carbon_string, perf_data, time)
+
 
 def process_host_perf_data(carbon_string, perf_data, time):
     """
         given the nagios perfdata, and some variables we return a list of
         carbon formatted values. carbon_string should already have a trailing .
     """
+    return process_nagios_perf_data(carbon_string, perf_data, time)
+
+
+def process_nagios_perf_data(carbon_string, perf_data, time):
+    """
+        given the nagios perfdata, and some variables we return a list of
+        carbon formatted strings.
+
+        nagios perfdata represented as a list of perf strings like following:
+            label=value[UOM];[warn];[crit];[min];[max]
+        We want to scrape the label=value and get rid of everything else.
+
+        UOM can be: s, %, B(kb,mb,tb), c
+
+        graphios assumes that you have modified your plugin to always use
+        the same value. If your plugin does not support this, you can use
+        check_mp to force your units to be consistent. Graphios plain
+        ignores the UOM.
+    """
     graphite_lines = []
-    perf_list = perf_data.split(" ")
-    for perf in perf_list:
-        (name, value) = process_perf_string(perf)
-        new_line = "%s%s %s %s" % (carbon_string, name, value, time)
-        log.debug("new line = %s" % (new_line))
+    log.debug('perfdata:%s' % (perf_data))
+    matches = re.finditer(r'(?P<perfdata>(?P<label>.*?)=(?P<value>[0-9\.]+)\S*\s?)', perf_data)
+    parsed_perfdata = [match.groupdict() for match in matches]
+    log.debug('parsed_perfdata:%s' % parsed_perfdata)
+    for perf_string in parsed_perfdata:
+        label = perf_string['label'].replace(' ', '_')
+        value = perf_string['value']
+        new_line = "%s%s %s %s" % (carbon_string, label, value, time)
+        log.debug("new line = %s" % new_line)
         graphite_lines.append(new_line)
-
     return graphite_lines
-
 
 def process_service_data(file_name, delete_after=0):
     """
@@ -404,59 +433,6 @@ def build_carbon_metric(graphite_prefix, host_name, graphite_postfix):
         carbon_string = carbon_string + "%s." % graphite_postfix
 
     return carbon_string
-
-
-def process_perf_string(nagios_perf_string):
-    """
-        given a single nagios perf string, returns a processed value.
-        Expected values:
-            label=value[UOM];[warn];[crit];[min];[max]
-        We want to scrape the label=value and get rid of everything else.
-
-        UOM can be: s, %, B(kb,mb,tb), c
-
-        graphios assumes that you have modified your plugin to always use
-        the same value. If your plugin does not support this, you can use
-        check_mp to force your units to be consistent. Graphios plain
-        ignores the UOM.
-    """
-#    log.debug("perfstring:%s" % (nagios_perf_string))
-    (name, value) = (None, None)
-    tmp = re.findall("=?[^;]*", nagios_perf_string)
-    try:
-        (name, value) = tmp[0].split('=')
-    except ValueError:
-        log.error('Bad perf string %s', (nagios_perf_string))
-    value = re.sub('[a-zA-Z]', '', value)
-    value = re.sub('\%', '', value)
-    return name, value
-
-
-def process_service_perf_data(carbon_string, perf_data, time):
-    """
-        given the nagios perfdata, and some variables we return a list of
-        carbon formatted strings.
-    """
-    graphite_lines = []
-#    log.debug('perfdata:%s' % (perf_data))
-    # find out if this is 1 perf statement or many, by counting how many '='
-    d = dict.fromkeys(perf_data, 0)
-    for c in perf_data:
-        d[c] += 1
-    if d['='] == 1:
-        (name, value) = process_perf_string(perf_data)
-        new_line = "%s%s %s %s" % (carbon_string, name, value, time)
-        log.debug("new line = %s" % (new_line))
-        graphite_lines.append(new_line)
-    else:
-        perf_list = perf_data.split(" ")
-        for perf in perf_list:
-            (name, value) = process_perf_string(perf)
-            new_line = "%s%s %s %s" % (carbon_string, name, value, time)
-            log.debug("new line = %s" % (new_line))
-            graphite_lines.append(new_line)
-
-    return graphite_lines
 
 
 def process_spool_dir(directory):
