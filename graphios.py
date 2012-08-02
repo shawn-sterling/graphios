@@ -7,6 +7,7 @@
 # Juan Jose Presa <juanjop@gmail.com>
 # Ranjib Dey <dey.ranjib@gmail.com>
 # Ryan Davis <https://github.com/ryepup>
+# Alexey Diyan <alexey.diyan@gmail.com>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -94,9 +95,10 @@ def configure(opts):
 
     log_handler = logging.handlers.RotatingFileHandler(
         opts.log_file, maxBytes=log_max_size, backupCount=4)
-    f = logging.Formatter("%(asctime)s %(filename)s %(levelname)s %(message)s",
-                          "%B %d %H:%M:%S")
-    log_handler.setFormatter(f)
+    formatter = logging.Formatter(
+        "%(asctime)s %(filename)s %(levelname)s %(message)s",
+        "%B %d %H:%M:%S")
+    log_handler.setFormatter(formatter)
     log.addHandler(log_handler)
 
     if opts.verbose:
@@ -116,9 +118,9 @@ def connect_carbon():
     try:
         sock.connect((carbon_server, carbon_port))
         return True
-    except Exception, e:
+    except Exception, ex:
         log.warning("Can't connect to carbon: %s:%s %s" % (carbon_server,
-            carbon_port, e))
+            carbon_port, ex))
         return False
 
 
@@ -126,7 +128,7 @@ def send_carbon(carbon_list):
     """
         Sends a list to Carbon, we postpend every entry with a \n as per
         carbon documentation.
-        If we can't connect to carbin, it sleeps, and doubles sleep_time
+        If we can't connect to carbon, it sleeps, and doubles sleep_time
         until it hits sleep_max.
     """
     global sock
@@ -137,8 +139,8 @@ def send_carbon(carbon_list):
         sock.sendall(message)
         log.debug("sending to carbon: %s" % message)
         return True
-    except Exception, e:
-        log.critical("Can't send message to carbon error:%s" % (e))
+    except Exception, ex:
+        log.critical("Can't send message to carbon error:%s" % ex)
         while True:
             sock.close()
             if connect_carbon():
@@ -148,11 +150,11 @@ def send_carbon(carbon_list):
                 if sleep_time < sleep_max:
                     sleep_time = sleep_time + sleep_time
                     log.warning("Carbon not responding. Increasing " + \
-                        "sleep_time to %s." % (sleep_time))
+                        "sleep_time to %s." % sleep_time)
                 else:
                     log.warning("Carbon not responding. Sleeping %s" % \
-                        (sleep_time))
-            log.debug("sleeping %s" % (sleep_time))
+                        sleep_time)
+            log.debug("sleeping %s" % sleep_time)
             time.sleep(sleep_time)
         return False
 
@@ -201,18 +203,18 @@ rta=1.066ms;5.000;10.000;0; pl=0%;5;10;; rtmax=4.368ms;;;; rtmin=0.196ms;;;;
         monitoring.domain.com.nagios01.pingto.db01.rtmin 0.196 timet
     """
     try:
-        f = open(file_name, "r")
-        file_array = f.readlines()
-        f.close()
-    except Exception, e:
-        log.critical("Can't open file:%s error: %s" % (file_name, e))
+        host_data_file = open(file_name, "r")
+        file_array = host_data_file.readlines()
+        host_data_file.close()
+    except Exception, ex:
+        log.critical("Can't open file:%s error: %s" % (file_name, ex))
         sys.exit(2)
     graphite_lines = []
     for line in file_array:
         variables = line.split('\t')
         data_type = ""
         host_name = ""
-        time = ""
+        time_stamp = ""
         host_perf_data = ""
         graphite_postfix = ""
         graphite_prefix = ""
@@ -220,7 +222,7 @@ rta=1.066ms;5.000;10.000;0; pl=0%;5;10;; rtmax=4.368ms;;;; rtmin=0.196ms;;;;
         for var in variables:
             (var_name, value) = var.split('::')
             if var_name == 'TIMET':
-                time = value
+                time_stamp = value
             if var_name == 'HOSTNAME':
                 host_name = value
             if var_name == 'HOSTPERFDATA':
@@ -240,7 +242,7 @@ rta=1.066ms;5.000;10.000;0; pl=0%;5;10;; rtmax=4.368ms;;;; rtmin=0.196ms;;;;
             graphite_prefix, host_name, graphite_postfix)
         if carbon_string:
             graphite_lines.extend(process_host_perf_data(
-                    carbon_string, host_perf_data, time))
+                    carbon_string, host_perf_data, time_stamp))
 
     handle_file(file_name, graphite_lines, test_mode, delete_after)
 
@@ -255,17 +257,17 @@ def handle_file(file_name, graphite_lines, test_mode, delete_after):
     """
     if test_mode:
         if len(graphite_lines) > 0:
-            log.debug("graphite_lines:%s" % (graphite_lines))
+            log.debug("graphite_lines:%s" % graphite_lines)
     else:
         if len(graphite_lines) > 0:
             if send_carbon(graphite_lines):
                 if delete_after:
-                    log.debug("removing file, %s" % (file_name))
+                    log.debug("removing file, %s" % file_name)
                     try:
                         os.remove(file_name)
-                    except Exception, e:
+                    except Exception, ex:
                         log.critical("couldn't remove file %s error:%s" % (
-                            file_name, e))
+                            file_name, ex))
             else:
                 log.warning("message not sent to graphite, file not deleted.")
         else:
@@ -273,26 +275,57 @@ def handle_file(file_name, graphite_lines, test_mode, delete_after):
             if delete_after:
                 try:
                     os.remove(file_name)
-                except Exception, e:
+                except Exception, ex:
                     log.critical("couldn't remove file %s error:%s" % (
-                        file_name, e))
+                        file_name, ex))
+
+                    
+def process_service_perf_data(carbon_string, perf_data, time_stamp):
+    """
+       given the nagios perfdata, and some variables we return a list of
+       carbon formatted strings.
+    """
+    return process_nagios_perf_data(carbon_string, perf_data, time_stamp)
 
 
-def process_host_perf_data(carbon_string, perf_data, time):
+def process_host_perf_data(carbon_string, perf_data, time_stamp):
     """
         given the nagios perfdata, and some variables we return a list of
         carbon formatted values. carbon_string should already have a trailing .
     """
+    return process_nagios_perf_data(carbon_string, perf_data, time_stamp)
+
+
+def process_nagios_perf_data(carbon_string, perf_data, time_stamp):
+    """
+        given the nagios perfdata, and some variables we return a list of
+        carbon formatted strings.
+
+        nagios perfdata represented as a list of perf strings like following:
+            label=value[UOM];[warn];[crit];[min];[max]
+        We want to scrape the label=value and get rid of everything else.
+
+        UOM can be: s, %, B(kb,mb,tb), c
+
+        graphios assumes that you have modified your plugin to always use
+        the same value. If your plugin does not support this, you can use
+        check_mp to force your units to be consistent. Graphios plain
+        ignores the UOM.
+    """
     graphite_lines = []
-    perf_list = perf_data.split(" ")
-    for perf in perf_list:
-        (name, value) = process_perf_string(perf)
-        new_line = "%s%s %s %s" % (carbon_string, name, value, time)
-        log.debug("new line = %s" % (new_line))
+    log.debug('perfdata:%s' % perf_data)
+    matches = re.finditer(
+        r'(?P<perfdata>(?P<label>.*?)=(?P<value>[0-9\.]+)\S*\s?)',
+        perf_data)
+    parsed_perfdata = [match.groupdict() for match in matches]
+    log.debug('parsed_perfdata:%s' % parsed_perfdata)
+    for perf_string in parsed_perfdata:
+        label = perf_string['label'].replace(' ', '_')
+        value = perf_string['value']
+        new_line = "%s%s %s %s" % (carbon_string, label, value, time_stamp)
+        log.debug("new line = %s" % new_line)
         graphite_lines.append(new_line)
-
     return graphite_lines
-
 
 def process_service_data(file_name, delete_after=0):
     """
@@ -327,18 +360,18 @@ def process_service_data(file_name, delete_after=0):
         So I set the _graphitepostfix to 'domain.com.nagios'
     """
     try:
-        f = open(file_name, "r")
-        file_array = f.readlines()
-        f.close()
-    except Exception, e:
-        log.critical("Can't open file:%s error: %s" % (file_name, e))
+        service_data_file = open(file_name, "r")
+        file_array = service_data_file.readlines()
+        service_data_file.close()
+    except Exception, ex:
+        log.critical("Can't open file:%s error: %s" % (file_name, ex))
         sys.exit(2)
     graphite_lines = []
     for line in file_array:
         variables = line.split('\t')
         data_type = ""
         host_name = ""
-        time = ""
+        time_stamp = ""
         service_perf_data = ""
         graphite_postfix = ""
         graphite_prefix = ""
@@ -352,7 +385,7 @@ def process_service_data(file_name, delete_after=0):
             else:
                 var_name = ""
             if var_name == 'TIMET':
-                time = value
+                time_stamp = value
             if var_name == 'HOSTNAME':
                 host_name = value
             if var_name == 'SERVICEPERFDATA':
@@ -374,7 +407,7 @@ def process_service_data(file_name, delete_after=0):
             graphite_prefix, host_name, graphite_postfix)
         if carbon_string:
             graphite_lines.extend(process_service_perf_data(
-                    carbon_string, service_perf_data, time))
+                    carbon_string, service_perf_data, time_stamp))
 
     handle_file(file_name, graphite_lines, test_mode, delete_after)
 
@@ -406,71 +439,19 @@ def build_carbon_metric(graphite_prefix, host_name, graphite_postfix):
     return carbon_string
 
 
-def process_perf_string(nagios_perf_string):
-    """
-        given a single nagios perf string, returns a processed value.
-        Expected values:
-            label=value[UOM];[warn];[crit];[min];[max]
-        We want to scrape the label=value and get rid of everything else.
-
-        UOM can be: s, %, B(kb,mb,tb), c
-
-        graphios assumes that you have modified your plugin to always use
-        the same value. If your plugin does not support this, you can use
-        check_mp to force your units to be consistent. Graphios plain
-        ignores the UOM.
-    """
-#    log.debug("perfstring:%s" % (nagios_perf_string))
-    (name, value) = (None, None)
-    tmp = re.findall("=?[^;]*", nagios_perf_string)
-    try:
-        (name, value) = tmp[0].split('=')
-    except ValueError:
-        log.error('Bad perf string %s', (nagios_perf_string))
-    value = re.sub('[a-zA-Z]', '', value)
-    value = re.sub('\%', '', value)
-    return name, value
-
-
-def process_service_perf_data(carbon_string, perf_data, time):
-    """
-        given the nagios perfdata, and some variables we return a list of
-        carbon formatted strings.
-    """
-    graphite_lines = []
-#    log.debug('perfdata:%s' % (perf_data))
-    # find out if this is 1 perf statement or many, by counting how many '='
-    d = dict.fromkeys(perf_data, 0)
-    for c in perf_data:
-        d[c] += 1
-    if d['='] == 1:
-        (name, value) = process_perf_string(perf_data)
-        new_line = "%s%s %s %s" % (carbon_string, name, value, time)
-        log.debug("new line = %s" % (new_line))
-        graphite_lines.append(new_line)
-    else:
-        perf_list = perf_data.split(" ")
-        for perf in perf_list:
-            (name, value) = process_perf_string(perf)
-            new_line = "%s%s %s %s" % (carbon_string, name, value, time)
-            log.debug("new line = %s" % (new_line))
-            graphite_lines.append(new_line)
-
-    return graphite_lines
-
-
 def process_spool_dir(directory):
     """
         processes the files in the spool directory
     """
-    file_list = os.listdir(directory)
-    for file in file_list:
-        if file == "host-perfdata" or file == "service-perfdata":
+    perfdata_files = os.listdir(directory)
+    for perfdata_file in perfdata_files:
+        if perfdata_file == "host-perfdata" \
+            or perfdata_file == "service-perfdata":
             continue
-        file_dir = os.path.join(directory, file)
-        if re.match('host-perfdata\.', file):
+        file_dir = os.path.join(directory, perfdata_file)
+        if re.match('host-perfdata\.', perfdata_file):
             process_host_data(file_dir, 1)
-        if re.match('service-perfdata\.', file):
+        if re.match('service-perfdata\.', perfdata_file):
             process_service_data(file_dir, 1)
 
 
