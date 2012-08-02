@@ -279,7 +279,7 @@ def handle_file(file_name, graphite_lines, test_mode, delete_after):
                     log.critical("couldn't remove file %s error:%s" % (
                         file_name, ex))
 
-                    
+
 def process_service_perf_data(carbon_string, perf_data, time_stamp):
     """
        given the nagios perfdata, and some variables we return a list of
@@ -326,6 +326,7 @@ def process_nagios_perf_data(carbon_string, perf_data, time_stamp):
         log.debug("new line = %s" % new_line)
         graphite_lines.append(new_line)
     return graphite_lines
+
 
 def process_service_data(file_name, delete_after=0):
     """
