@@ -107,6 +107,7 @@ def configure(opts):
 
     if opts.verbose:
         log.setLevel(logging.DEBUG)
+        log.addHandler(logging.StreamHandler())
     else:
         log.setLevel(log_level)
 
@@ -143,7 +144,6 @@ def send_carbon(carbon_list):
     #message = '\n'.join(carbon_list) + '\n'
     try:
         sock.sendall(message)
-        log.debug("sending to carbon: %s" % message)
         return True
     except Exception, ex:
         log.critical("Can't send message to carbon error:%s" % ex)
@@ -368,6 +368,7 @@ def process_service_data(file_name, delete_after=0):
         So I set the _graphitepostfix to 'domain.com.nagios'
     """
     try:
+        log.debug("Starting on %r", file_name)
         service_data_file = open(file_name, "r")
         file_array = service_data_file.readlines()
         service_data_file.close()
