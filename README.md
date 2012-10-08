@@ -365,10 +365,13 @@ You should now be able to start at step 3 on the above instructions.
 
 # OMD (Open Monitoring Distribution) Notes:
 
-OMD 5.5 is different form earlier versions in the way NPCD is setup. (Download the 5.5 source code to see the config differences)
+* UPDATE - OMD 5.6 was released on 10/02/2012
+* The only changes that you would need to make to 5.6 is add the changes in step 2 (omd-process-host/service-perfdata-file commands)
+
+OMD 5.6 is different form earlier versions in the way NPCD is setup. (Download the 5.6 source code to see the config differences)
 This guide assumes you are using OMD 5.4 (Current Stable Release)
 
-* Warning I'm not sure of the impacts that this might have when actually upgrading to 5.5
+* Warning I'm not sure of the impacts that this might have when actually upgrading to 5.6
 * Make sure to update SITENAME with your OMD site
 
 (1) Update OMD 5.4's etc/pnp4nagios/nagios_npcdmod.cfg so that it looks like this:
