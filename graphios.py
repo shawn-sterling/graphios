@@ -70,6 +70,9 @@ sleep_max = 480
 # any files from the spool directory. log_level must be DEBUG as well.
 test_mode = False
 
+# Character to use as replacement for invalid characters in metric names
+replacement_character = '_'
+
 ##### You should stop changing things unless you know what you are doing #####
 ##############################################################################
 
@@ -165,7 +168,8 @@ def convert_pickle(carbon_list):
     """
     pickle_list = []
     for metric in carbon_list:
-        path, value, timestamp = re.split("\s+", metric.strip())
+        path, value, timestamp = metric.strip().rsplit(' ', 2)
+        path = re.sub(r"\s+", replacement_character, path)
         metric_tuple = (path, (timestamp, value))
         pickle_list.append(metric_tuple)
 
