@@ -8,6 +8,7 @@
 # Ranjib Dey <dey.ranjib@gmail.com>
 # Ryan Davis <https://github.com/ryepup>
 # Alexey Diyan <alexey.diyan@gmail.com>
+# Steffen Zieger <me@saz.sh>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
