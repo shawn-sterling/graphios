@@ -327,7 +327,7 @@ def process_nagios_perf_data(carbon_string, perf_data, time_stamp):
     parsed_perfdata = [match.groupdict() for match in matches]
     log.debug('parsed_perfdata:%s' % parsed_perfdata)
     for perf_string in parsed_perfdata:
-        label = perf_string['label'].replace(' ', replacement_character)
+        label = re.sub(r'[\s\.]', replacement_character, perf_string['label'])
         value = perf_string['value']
         new_line = "%s%s %s %s" % (carbon_string, label, value, time_stamp)
         log.debug("new line = %s" % new_line)
