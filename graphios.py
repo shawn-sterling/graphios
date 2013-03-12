@@ -107,6 +107,7 @@ def configure(opts):
 
     if opts.verbose:
         log.setLevel(logging.DEBUG)
+        log.addHandler(logging.StreamHandler())
     else:
         log.setLevel(log_level)
 
@@ -117,10 +118,12 @@ def connect_carbon():
     """
         Connects to Carbon server
     """
+    log.debug("Connecting to carbon at %s:%s", carbon_server, carbon_port)
     global sock
     sock = socket.socket()
     try:
         sock.connect((carbon_server, carbon_port))
+        log.debug("connected")
         return True
     except Exception, ex:
         log.warning("Can't connect to carbon: %s:%s %s" % (carbon_server,
@@ -141,7 +144,6 @@ def send_carbon(carbon_list):
     #message = '\n'.join(carbon_list) + '\n'
     try:
         sock.sendall(message)
-        log.debug("sending to carbon: %s" % message)
         return True
     except Exception, ex:
         log.critical("Can't send message to carbon error:%s" % ex)
@@ -325,7 +327,7 @@ def process_nagios_perf_data(carbon_string, perf_data, time_stamp):
     parsed_perfdata = [match.groupdict() for match in matches]
     log.debug('parsed_perfdata:%s' % parsed_perfdata)
     for perf_string in parsed_perfdata:
-        label = perf_string['label'].replace(' ', '_')
+        label = re.sub(r'[\s\.:\\]', replacement_character, perf_string['label'])
         value = perf_string['value']
         new_line = "%s%s %s %s" % (carbon_string, label, value, time_stamp)
         log.debug("new line = %s" % new_line)
@@ -366,6 +368,7 @@ def process_service_data(file_name, delete_after=0):
         So I set the _graphitepostfix to 'domain.com.nagios'
     """
     try:
+        log.debug("Starting on %r", file_name)
         service_data_file = open(file_name, "r")
         file_array = service_data_file.readlines()
         service_data_file.close()
@@ -395,7 +398,7 @@ def process_service_data(file_name, delete_after=0):
             if var_name == 'HOSTNAME':
                 host_name = value
             if var_name == 'SERVICEPERFDATA':
-                service_perf_data = value.replace('/', '_')
+                service_perf_data = value.replace('/', replacement_character)
             if var_name == 'GRAPHITEPOSTFIX':
                 value = re.sub("\s", "", value)
                 if value != "$_SERVICEGRAPHITEPOSTFIX$":
@@ -434,7 +437,7 @@ def build_carbon_metric(graphite_prefix, host_name, graphite_postfix):
     if graphite_prefix != "":
         carbon_string = "%s." % graphite_prefix
     if host_name != "":
-        carbon_string = carbon_string + "%s." % host_name.replace('.', '_')
+        carbon_string = carbon_string + "%s." % host_name.replace('.', replacement_character)
     else:
         log.debug("can't find hostname in %s on %s" % (line, file_name))
         return ""
@@ -449,6 +452,8 @@ def process_spool_dir(directory):
     """
         processes the files in the spool directory
     """
+    log.debug("Processing spool directory %s", directory)
+    num_files = 0
     perfdata_files = os.listdir(directory)
     for perfdata_file in perfdata_files:
         if perfdata_file == "host-perfdata" \
@@ -457,8 +462,11 @@ def process_spool_dir(directory):
         file_dir = os.path.join(directory, perfdata_file)
         if re.match('host-perfdata\.', perfdata_file):
             process_host_data(file_dir, 1)
+            num_files += 1
         if re.match('service-perfdata\.', perfdata_file):
             process_service_data(file_dir, 1)
+            num_files += 1
+    log.info("Processed %s files in %s", num_files, directory)
 
 
 def main():
