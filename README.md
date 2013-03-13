@@ -379,7 +379,7 @@ This guide assumes you are using OMD 5.4 (Current Stable Release)
 <pre>
 #
 # PNP4Nagios Bulk Mode with npcd
-# 
+#
 process_performance_data=1
 
 #
@@ -393,7 +393,7 @@ service_perfdata_file_processing_command=omd-process-service-perfdata-file
 
 #
 # host performance data
-# 
+#
 host_perfdata_file=/omd/sites/SITENAME/var/pnp4nagios/host-perfdata
 host_perfdata_file_template=DATATYPE::HOSTPERFDATA\tTIMET::$TIMET$\tHOSTNAME::$HOSTNAME$\tHOSTPERFDATA::$HOSTPERFDATA$\tHOSTCHECKCOMMAND::$HOSTCHECKCOMMAND$\tHOSTSTATE::$HOSTSTATE$\tHOSTSTATETYPE::$HOSTSTATETYPE$\tGRAPHITEPREFIX::$_HOSTGRAPHITEPREFIX$\tGRAPHITEPOSTFIX::$_HOSTGRAPHITEPOSTFIX$
 host_perfdata_file_mode=a
@@ -438,13 +438,13 @@ For service perf data create a file called, "extra_service_conf.mk", remember yo
 extra_service_conf["_graphiteprefix"] = [
   ( "DESIREDPREFIX.check_mk", ALL_HOSTS, ["Check_MK"]),
   ( "DESIREDPREFIX.cpu.load", ALL_HOSTS, ["CPU load"]),
-] 
+]
 </pre>
 
 
 # Trouble getting it working?
 
-I will help the first few people that have problems getting this working, and update the documentation on what is not clear. I am not offering to teach you how to setup Nagios, this is for intermediate+ nagios users. Email me at shawn@systemtemplar.org and I will do what I can to help.
+Many people are running graphios now (cool!), but if you are having trouble getting it working let me know. I am not offering to teach you how to setup Nagios, this is for intermediate+ nagios users. Email me at shawn@systemtemplar.org and I will do what I can to help.
 
 # Got it working?
 
