@@ -9,6 +9,7 @@
 # Ryan Davis <https://github.com/ryepup>
 # Alexey Diyan <alexey.diyan@gmail.com>
 # Steffen Zieger <me@saz.sh>
+# Nathan Bird <ecthellion@gmail.com>
 #
 # This program is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -127,7 +128,7 @@ def connect_carbon():
         return True
     except Exception, ex:
         log.warning("Can't connect to carbon: %s:%s %s" % (carbon_server,
-            carbon_port, ex))
+                                                           carbon_port, ex))
         return False
 
 
@@ -155,11 +156,11 @@ def send_carbon(carbon_list):
             else:
                 if sleep_time < sleep_max:
                     sleep_time = sleep_time + sleep_time
-                    log.warning("Carbon not responding. Increasing " + \
-                        "sleep_time to %s." % sleep_time)
+                    log.warning("Carbon not responding. Increasing " +
+                                "sleep_time to %s." % sleep_time)
                 else:
-                    log.warning("Carbon not responding. Sleeping %s" % \
-                        sleep_time)
+                    log.warning("Carbon not responding. Sleeping %s" %
+                                sleep_time)
             log.debug("sleeping %s" % sleep_time)
             time.sleep(sleep_time)
         return False
@@ -219,7 +220,6 @@ rta=1.066ms;5.000;10.000;0; pl=0%;5;10;; rtmax=4.368ms;;;; rtmin=0.196ms;;;;
     graphite_lines = []
     for line in file_array:
         variables = line.split('\t')
-        data_type = ""
         host_name = ""
         time_stamp = ""
         host_perf_data = ""
@@ -249,7 +249,7 @@ rta=1.066ms;5.000;10.000;0; pl=0%;5;10;; rtmax=4.368ms;;;; rtmin=0.196ms;;;;
             graphite_prefix, host_name, graphite_postfix)
         if carbon_string:
             graphite_lines.extend(process_host_perf_data(
-                    carbon_string, host_perf_data, time_stamp))
+                                  carbon_string, host_perf_data, time_stamp))
 
     handle_file(file_name, graphite_lines, test_mode, delete_after)
 
@@ -327,7 +327,8 @@ def process_nagios_perf_data(carbon_string, perf_data, time_stamp):
     parsed_perfdata = [match.groupdict() for match in matches]
     log.debug('parsed_perfdata:%s' % parsed_perfdata)
     for perf_string in parsed_perfdata:
-        label = re.sub(r'[\s\.:\\]', replacement_character, perf_string['label'])
+        label = re.sub(r'[\s\.:\\]', replacement_character,
+                       perf_string['label'])
         value = perf_string['value']
         new_line = "%s%s %s %s" % (carbon_string, label, value, time_stamp)
         log.debug("new line = %s" % new_line)
@@ -378,7 +379,6 @@ def process_service_data(file_name, delete_after=0):
     graphite_lines = []
     for line in file_array:
         variables = line.split('\t')
-        data_type = ""
         host_name = ""
         time_stamp = ""
         service_perf_data = ""
@@ -416,7 +416,8 @@ def process_service_data(file_name, delete_after=0):
             graphite_prefix, host_name, graphite_postfix)
         if carbon_string:
             graphite_lines.extend(process_service_perf_data(
-                    carbon_string, service_perf_data, time_stamp))
+                                  carbon_string, service_perf_data,
+                                  time_stamp))
 
     handle_file(file_name, graphite_lines, test_mode, delete_after)
 
@@ -428,18 +429,16 @@ def build_carbon_metric(graphite_prefix, host_name, graphite_postfix):
     """
 
     if (graphite_prefix == "" and graphite_postfix == ""):
-# uncomment below if you are troubleshooting a weird plugin.
-#       log.debug("can't find graphite prefix or postfix in %s on %s" % (
-#           line, file_name))
         return ""
 
     carbon_string = ""
     if graphite_prefix != "":
         carbon_string = "%s." % graphite_prefix
     if host_name != "":
-        carbon_string = carbon_string + "%s." % host_name.replace('.', replacement_character)
+        host_name = host_name.replace('.', replacement_character)
+        carbon_string = carbon_string + "%s." % host_name
     else:
-        log.debug("can't find hostname in %s on %s" % (line, file_name))
+        log.debug("can't find hostname given %s" % (host_name))
         return ""
 
     if graphite_postfix != "":
@@ -456,8 +455,10 @@ def process_spool_dir(directory):
     num_files = 0
     perfdata_files = os.listdir(directory)
     for perfdata_file in perfdata_files:
-        if perfdata_file == "host-perfdata" \
-            or perfdata_file == "service-perfdata":
+        if (
+            perfdata_file == "host-perfdata" or
+            perfdata_file == "service-perfdata"
+        ):
             continue
         file_dir = os.path.join(directory, perfdata_file)
         if re.match('host-perfdata\.', perfdata_file):
