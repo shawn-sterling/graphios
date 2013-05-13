@@ -322,7 +322,7 @@ def process_nagios_perf_data(carbon_string, perf_data, time_stamp):
     graphite_lines = []
     log.debug('perfdata:%s' % perf_data)
     matches = re.finditer(
-        r'(?P<perfdata>(?P<label>.*?)=(?P<value>[0-9\.]+)\S*\s?)',
+        r'(?P<perfdata>(?P<label>.*?)=(?P<value>[-0-9\.]+)\S*\s?)',
         perf_data)
     parsed_perfdata = [match.groupdict() for match in matches]
     log.debug('parsed_perfdata:%s' % parsed_perfdata)
