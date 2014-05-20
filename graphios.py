@@ -52,7 +52,7 @@ from optparse import OptionParser
 spool_directory = '/var/spool/nagios/graphios'
 
 # Where to look for pluggable back-ends
-backend_directory = '/opt/graphios/backends'
+backend_directory = '/usr/local/nagios/libexec/graphios_backends'
 
 # graphios log info
 log_file = '/var/log/nagios/graphios.log'
@@ -172,6 +172,7 @@ def process_log(file_name):
 		variables = line.split('\t')
 		for var in variables:
 			(var_name, value) = var.split('::')
+			value = re.sub("/", replacement_character, value) 
 			if re.search("PERFDATA", var_name):
 				mobj.PERFDATA = value
 			elif re.search("^\$_", value):
