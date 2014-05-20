@@ -16,18 +16,16 @@ import os
 ##### You will likely need to change some of the below #####
 
 #your librato credentials here: 
-email = 'john@example.com'
-token = '02ac4003c4fcd11bf9cee34e34263155dc7ba1906c322d167db6ab4b2cd2082b'
+email = 'dave@librato.com'
+token = '8f40d885b1a866fc76d8f414457ea419b73aa46aeedb8df2e15ee069fb61868d'
 
-# Floor samples to this interval (should match graphios flush_interval.)
+# floor_time_secs: Floor samples to this time (should match graphios flush_interval.
 floor_time_secs = 60
 
-# The attributes we'll use to construct the metric name:
-# (The default is probably what you want here)
+# The values we'll use to construct the metric name:
 namevals=['GRAPHITEPREFIX','GRAPHITEPOSTFIX','LABEL']
 
-#The attributes we'll use to construct the librato source dimension:
-# (The default is probably what you want here)
+#The values we'll use to construct the librato source dimension:
 sourcevals=['HOSTNAME']
 
 ##### You should stop changing things unless you know what you are doing ##### 
@@ -133,8 +131,17 @@ class LibratoStore(object):
 			self.logger.warning('Failed to send metrics to Librato: Code: %d. Response: %s' % \
 								(error.code, body))
 		except IOError as error:
-			self.logger.warning('Error when sending metrics Librato (%s)' % \
-								(error.reason))
+			if hasattr(error, 'reason'):
+				self.logger.warning('Error when sending metrics Librato (%s)' % (error.reason))
+			elif hasattr(error, 'code'):
+				self.logger.warning('Error when sending metrics Librato (%s)' % (error.code))
+			else:
+				self.logger.warning('Error when sending metrics Librato and I dunno why')
+
+	def flush(self):
+		"""
+		POST a collection of gauges to Librato.
+		"""
 
 	def flush(self):
 		"""
