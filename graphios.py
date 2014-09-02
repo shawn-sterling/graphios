@@ -55,7 +55,7 @@ spool_directory = '/var/spool/nagios/graphios'
 bdir = '/usr/local/nagios/libexec/graphios_backends'
 
 # graphios log info
-log_file = '/var/log/nagios/graphios.log'
+log_file = '/usr/local/nagios/var/graphios.log'
 log_max_size = 25165824         # 24 MB
 # log_level = logging.INFO
 log_level = logging.DEBUG      # DEBUG is quite verbose
@@ -66,9 +66,8 @@ sleep_time = 15
 # when we can't connect to carbon, the sleeptime is doubled until we hit max
 sleep_max = 480
 
-# set this to 1 to delete the service and host data files
-# when we're done parsing them
-delete_after = 0
+# keep a replayable archive log of processed metrics
+metric_archive = '/usr/local/nagios/var/graphios_metric_archive.log'
 
 # test mode makes it so we print what we would add to carbon, and not delete
 # any files from the spool directory. log_level must be DEBUG as well.
@@ -198,23 +197,20 @@ def process_log(file_name):
 
 def handle_file(file_name, graphite_lines):
     """
-    rename already processed files or
-    delete files if necessary
+    archive processed metric lines and delete the input log files
     """
-    if graphite_lines == 0 or delete_after == 1:
-        log.debug("removing file, %s" % file_name)
-        try:
-            os.remove(file_name)
-        except Exception, ex:
-            log.critical("couldn't remove file %s error:%s" % (file_name, ex))
-    else:
-        (dname, fname) = os.path.split(file_name)
-        nname = os.path.join(dname, "_%s" % fname)
-        log.debug("moving file, %s to %s" % (file_name, nname))
-        try:
-            os.rename(file_name, nname)
-        except Exception, ex:
-            log.critical("couldn't rename file %s error:%s" % (file_name, ex))
+    if graphite_lines > 0:
+        log.debug("archiving file, %s" % file_name)
+        infile = open(file_name, "r")
+        archive = open(metric_archive, "a")
+        archive.write(infile.read())
+        archive.close()
+        infile.close()
+
+    try:
+        os.remove(file_name)
+    except Exception, ex:
+        log.critical("couldn't remove file %s error:%s" % (file_name, ex))
 
 
 def process_spool_dir(directory):
