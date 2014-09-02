@@ -41,6 +41,7 @@ def convert(metrics):
 def send(metrics):
     # Fire metrics at the statsd server and hope for the best (loludp)
 
+    ret = True
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     log.debug("sending to statsd at %s:%s" % (statsd_server, statsd_port))
 
@@ -49,4 +50,7 @@ def send(metrics):
         try:
             sock.sendto(m, (statsd_server, statsd_port))
         except Exception, ex:
+            ret = False
             log.critical("Can't send metric to statsd error:%s" % ex)
+
+    return ret

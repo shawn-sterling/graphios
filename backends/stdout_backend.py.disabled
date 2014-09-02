@@ -27,3 +27,5 @@ def send(metrics):
         print("%s:%s" % ('GRAPHITEPREFIX ', metric.GRAPHITEPREFIX))
         print("%s:%s" % ('GRAPHITEPOSTFIX ', metric.GRAPHITEPOSTFIX))
         print("-------")
+
+    return True

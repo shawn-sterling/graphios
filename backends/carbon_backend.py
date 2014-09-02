@@ -55,12 +55,14 @@ def send(metrics):
         Connect to the Carbon server
         Send the metrics
     """
+    ret = True
     sock = socket.socket()
     log.debug("Connecting to carbon at %s:%s" % (carbon_server, carbon_port))
     try:
         sock.connect((carbon_server, carbon_port))
         log.debug("connected")
     except Exception, ex:
+        ret = False
         log.warning("Can't connect to carbon: %s:%s %s" %
                     (carbon_server, carbon_port, ex))
 
@@ -68,6 +70,8 @@ def send(metrics):
     try:
         sock.sendall(message)
     except Exception, ex:
+        ret = False
         log.critical("Can't send message to carbon error:%s" % ex)
 
     sock.close()
+    return ret

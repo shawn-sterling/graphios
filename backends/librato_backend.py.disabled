@@ -16,14 +16,14 @@ import os
 # #### You will likely need to change some of the below #####
 
 # your librato credentials here:
-email = 'dave@librato.com'
-token = '8f40d885b1a866fc76d8f414457ea419b73aa46aeedb8df2e15ee069fb61868d'
+email = 'your email'
+token = 'your token'
 
-# floor_time_secs: Floor samples to this time (match graphios flush_interval
-floor_time_secs = 60
+# floor_time_secs: Floor samples to this time (match graphios sleep_time)
+floor_time_secs = 15
 
 # The values we'll use to construct the metric name:
-namevals = ['GRAPHITEPREFIX', 'GRAPHITEPOSTFIX', 'LABEL']
+namevals = ['GRAPHITEPREFIX', 'SERVICEDESC', 'GRAPHITEPOSTFIX', 'LABEL']
 
 # The values we'll use to construct the librato source dimension:
 sourcevals = ['HOSTNAME']
@@ -118,19 +118,21 @@ class LibratoStore(object):
         """
 
         body = json.dumps({'gauges': g})
-
         url = "%s/v1/metrics" % (self.api)
         req = urllib2.Request(url, body, headers)
+        ret = True
 
         try:
             f = urllib2.urlopen(req, timeout=self.flush_timeout_secs)
             response = f.read()
             f.close()
         except urllib2.HTTPError as error:
+            ret = False
             body = error.read()
             self.logger.warning('Failed to send metrics to Librato: Code: \
                                 %d . Response: %s' % (error.code, body))
         except IOError as error:
+            ret = False
             if hasattr(error, 'reason'):
                 self.logger.warning('Error when sending metrics Librato \
                                     (%s)' % (error.reason))
@@ -140,20 +142,18 @@ class LibratoStore(object):
             else:
                 self.logger.warning('Error when sending metrics Librato \
                                     and I dunno why')
+        return ret
 
     def flush(self):
         """
         POST a collection of gauges to Librato.
         """
 
-    def flush(self):
-        """
-        POST a collection of gauges to Librato.
-        """
+        ret = True
 
         # Nothing to do
         if len(self.gauges) == 0:
-            return
+            return ret
 
         headers = {
             'Content-Type': 'application/json',
@@ -168,12 +168,14 @@ class LibratoStore(object):
             count += 1
 
             if count >= self.max_metrics_payload:
-                self.flush_payload(headers, metrics)
+                ret = self.flush_payload(headers, metrics)
                 count = 0
                 metrics = []
 
         if count > 0:
-            self.flush_payload(headers, metrics)
+            ret = self.flush_payload(headers, metrics)
+
+        return ret
 
     def build_basic_auth(self):
         base64string = base64.encodestring('%s:%s' % (self.email, self.token))
@@ -202,4 +204,6 @@ def send(metrics):
 
     # Flush
     librato.build(metrics)
-    librato.flush()
+    ret = librato.flush()
+
+    return ret

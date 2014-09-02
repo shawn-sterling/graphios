@@ -254,7 +254,10 @@ def main():
 
         if len(metrics) > 0:
             for backend in backends:
-                backend.send(metrics)
+                bret = backend.send(metrics)
+                if (bret != True):
+                    log.warn("Plugin returned an error: %s",
+                             backend)
 
         log.debug("graphios sleeping.")
         time.sleep(sleep_time)
