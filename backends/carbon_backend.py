@@ -41,6 +41,7 @@ def convert_pickle(metrics):
         timestamp = m.TIMET
         path = re.sub(r"\.$", '', path)  # fix paths that end in dot
         path = re.sub(r"\.\.", '.', path)  # fix paths with double dots
+        path = fix_carbon_string(path)
         metric_tuple = (path, (timestamp, value))
         pickle_list.append(metric_tuple)
 
@@ -48,6 +49,18 @@ def convert_pickle(metrics):
     header = struct.pack("!L", len(payload))
     message = header + payload
     return message
+
+
+def fix_carbon_string(my_string):
+    """
+        takes a string and replaces whitespace and invalid carbon chars with
+        the global replacement_character
+    """
+    invalid_chars = '~!@#$:;%^*()+={}[]|\/<>'
+    my_string = re.sub("\s", replacement_character, my_string)
+    for char in invalid_chars:
+        my_string = my_string.replace(char, replacement_character)
+    return my_string
 
 
 def send(metrics):
