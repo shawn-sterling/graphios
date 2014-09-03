@@ -33,16 +33,16 @@
 # The latest version of this code will be found on my github page:
 # https://github.com/shawn-sterling
 
-import os
-import os.path
-import imp
-import sys
+from ConfigParser import SafeConfigParser
+from optparse import OptionParser
 import copy
-import re
 import logging
 import logging.handlers
+import os
+import os.path
+import re
+import sys
 import time
-from optparse import OptionParser
 
 
 ############################################################
@@ -52,10 +52,10 @@ from optparse import OptionParser
 spool_directory = '/var/spool/nagios/graphios'
 
 # Where to look for pluggable back-ends
-bdir = '/usr/local/nagios/libexec/graphios_backends'
+bdir = '/home/shawn/git/github/graphios.dave/backends'
 
 # graphios log info
-log_file = '/usr/local/nagios/var/graphios.log'
+log_file = '/home/shawn/git/github/graphios.dave/graphios.log'
 log_max_size = 25165824         # 24 MB
 # log_level = logging.INFO
 log_level = logging.DEBUG      # DEBUG is quite verbose
@@ -75,6 +75,14 @@ test_mode = False
 
 # Character to use as replacement for invalid characters in metric names
 replacement_character = '_'
+
+# use service description as part of your carbon metric
+# $GRAPHIOSPREFIX.$HOSTNAME.$SERVICEDESC.$GRAPHIOSPOSTFIX.$PERFDATA
+use_service_desc = False
+
+# config file stuff
+config_dir = '/home/shawn/git/github/graphios.dave/'
+config_file = 'graphios.cfg'
 
 # #### You should stop changing things unless you know what you are doing #####
 ##############################################################################
@@ -106,29 +114,61 @@ backends = [__import__(fname) for fname in bfiles]
 
 class GraphiosMetric(object):
     def __init__(self):
-        self.LABEL = ''  # The metric name in the perfdata from nagios
-        self.VALUE = ''  # The measured value of that metric
-        self.UOM = ''  # The unit of measure for the metric
-        self.DATATYPE = ''  # HOSTPERFDATA|SERVICEPERFDATA
-        self.TIMET = ''  # Epoc time the measurement was taken
-        self.HOSTNAME = ''  # name of th host measured
-        self.SERVICEDESC = ''  # nagios configured service description
-        self.PERFDATA = ''  # the space-delimited raw perfdata
-        self.SERVICECHECKCOMMAND = ''  # literal check command syntax
-        self.HOSTCHECKCOMMAND = ''  # literal check command syntax
-        self.HOSTSTATE = ''  # current state afa nagios is concerned
-        self.HOSTSTATETYPE = ''  # HARD|SOFT
-        self.SERVICESTATE = ''  # current state afa nagios is concerned
-        self.SERVICESTATETYPE = ''  # HARD|SOFT
-        self.GRAPHITEPREFIX = ''  # graphios prefix
-        self.GRAPHITEPOSTFIX = ''  # graphios suffix
+        self.LABEL = ''                 # The name in the perfdata from nagios
+        self.VALUE = ''                 # The measured value of that metric
+        self.UOM = ''                   # The unit of measure for the metric
+        self.DATATYPE = ''              # HOSTPERFDATA|SERVICEPERFDATA
+        self.TIMET = ''                 # Epoc time the measurement was taken
+        self.HOSTNAME = ''              # name of th host measured
+        self.SERVICEDESC = ''           # nagios configured service description
+        self.PERFDATA = ''              # the space-delimited raw perfdata
+        self.SERVICECHECKCOMMAND = ''   # literal check command syntax
+        self.HOSTCHECKCOMMAND = ''      # literal check command syntax
+        self.HOSTSTATE = ''             # current state afa nagios is concerned
+        self.HOSTSTATETYPE = ''         # HARD|SOFT
+        self.SERVICESTATE = ''          # current state afa nagios is concerned
+        self.SERVICESTATETYPE = ''      # HARD|SOFT
+        self.GRAPHITEPREFIX = ''        # graphios prefix
+        self.GRAPHITEPOSTFIX = ''       # graphios suffix
+        self.VALID = False              # if this metric is valid
+
+    def validate(self):
+        if (
+            self.TIMET is not '' and
+            self.PERFDATA is not '' and
+            self.HOSTNAME is not ''
+        ):
+            if use_service_desc:
+                if self.SERVICEDESC is not '':
+                    self.VALID = True
+            else:
+                self.VALID = True
+
+
+def read_config(config_dir, config_file):
+    config = SafeConfigParser()
+    file_path = os.path.join(config_dir, config_file)
+    log.debug('cfg file name:% s' % os.path.join(config_dir, config_file))
+    if os.path.isfile(file_path):
+        config.read(file_path)
+        config_dict = {}
+        for section in config.sections():
+            log.debug("section: %s" % section)
+            config_dict[section] = {}
+            config_dict[section]['name'] = section
+            for name, value in config.items(section):
+                config_dict[section][name] = value
+                log.debug("config[%s][%s]=%s" % (section, name, value))
+        return config_dict
+    else:
+        log.critical("Can't open filename: %s" % file_path)
 
 
 def configure(opts):
     global spool_directory
 
     log_handler = logging.handlers.RotatingFileHandler(
-        opts.log_file, maxBytes=log_max_size, backupCount=4)
+        opts.log_file, maxBytes=log_max_size, backupCount=4, encoding='bz2')
     formatter = logging.Formatter(
         "%(asctime)s %(filename)s %(levelname)s %(message)s",
         "%B %d %H:%M:%S")
@@ -251,7 +291,7 @@ def main():
         if len(metrics) > 0:
             for backend in backends:
                 bret = backend.send(metrics)
-                if (bret != True):
+                if (bret is not True):
                     log.warn("Plugin returned an error: %s",
                              backend)
 
@@ -261,4 +301,7 @@ def main():
 if __name__ == '__main__':
     (options, args) = parser.parse_args()
     configure(options)
+    config_dict = read_config(config_dir, config_file)
+    print config_dict
+    sys.exit(1)
     main()
