@@ -43,6 +43,7 @@ import os.path
 import re
 import sys
 import time
+import backends
 
 
 ############################################################
@@ -50,9 +51,6 @@ import time
 
 # nagios spool directory
 spool_directory = '/var/spool/nagios/graphios'
-#
-# # Where to look for pluggable back-ends
-# bdir = '/home/shawn/git/github/graphios.dave/backends'
 #
 # # graphios log info
 log_file = ''
@@ -153,7 +151,7 @@ class GraphiosMetric(object):
             self.PERFDATA is not '' and
             self.HOSTNAME is not ''
         ):
-            if cfg["use_service_desc"]:
+            if "use_service_desc" in cfg:
                 if self.SERVICEDESC is not '':
                     self.VALID = True
             else:
@@ -230,14 +228,16 @@ def configure(opts=''):
 
     log_handler = logging.handlers.RotatingFileHandler(
         cfg["log_file"], maxBytes=cfg["log_max_size"], backupCount=4,
-        encoding='bz2')
+        #encoding='bz2')
+        )
     formatter = logging.Formatter(
         "%(asctime)s %(filename)s %(levelname)s %(message)s",
         "%B %d %H:%M:%S")
     log_handler.setFormatter(formatter)
     log.addHandler(log_handler)
 
-    if "debug" in cfg and cfg["debug"] is True:
+    if "debug" in cfg and cfg["debug"] == "True":
+        print("adding streamhandler")
         log.setLevel(logging.DEBUG)
         log.addHandler(logging.StreamHandler())
         debug = True
@@ -263,11 +263,17 @@ def process_log(file_name):
         log.critical("Can't open file:%s error: %s" % (file_name, ex))
         sys.exit(2)
 
+    # tofix: I added this to catch and delete empty files but imo this should
+    # be handled before we get this far.
+    if len(file_array) == 0:
+        handle_file(file_name, 0)
+        return processed_objects
+
     # parse each line into a metric object
     for line in file_array:
         if not re.search("^DATATYPE::", line):
             continue
-        log.debug('parsing: %s' % line)
+        #log.debug('parsing: %s' % line)
         graphite_lines += 1
         mobj = GraphiosMetric()
         variables = line.split('\t')
@@ -300,13 +306,15 @@ def handle_file(file_name, graphite_lines):
     """
     archive processed metric lines and delete the input log files
     """
-    if cfg["test_mode"] and graphite_lines > 0:
+    if "test_mode" in cfg and cfg["test_mode"] == "True":
         log.debug("graphite_lines:%s" % graphite_lines)
     else:
         try:
             os.remove(file_name)
         except OSError as ex:
             log.critical("couldn't remove file %s error:%s" % (file_name, ex))
+        else:
+            log.debug("deleted %s" % file_name)
 
 
 def process_spool_dir(directory):
@@ -334,20 +342,92 @@ def process_spool_dir(directory):
         # we can't remove the file yet, because we don't know if it was sent
         # to a backend, we need at least one backend to succeed before we
         # delete it.
-
-        if send_backends(mobjs) > 1:
+        num_lines_processed = send_backends(mobjs)
+        if num_lines_processed > 1:   # This leaks empty files.
             handle_file(file_dir, len(mobjs))
 
-    log.info("Processed %s files in %s", num_files, directory)
-    # return metric_objects
+    log.info("Processed %s files (%s metrics) in %s" % (num_files,
+              num_lines_processed, directory))
+
+
+def init_backends():
+    """
+    I'm going to be a little forward thinking with this and build a global dict
+    of enabled back-ends whose values are instantiations of the back-end
+    objects themselves. I know, global bad, but hypothetically we could modify
+    this dict dynamically via a runtime-interface (graphiosctl?) to turn off/on
+    backends without having to restart the graphios process.  I feel like
+    that's enough of a win to justify the global. If you build it, they will
+    come.
+    """
+    global enabled_backends
+    enabled_backends = {}
+
+    #PLUGIN WRITERS! register your new backends by adding their obj name here
+    avail_backends = ("carbon",
+                       "statsd",
+                       "librato",
+                       "stdout",
+                     )
+
+    #populate the controller dict from avail + config. this assumes you named
+    #your plugin the same as your config option enabling the plugin (eg.
+    #carbon and enable_carbon)
+
+    for plugin in avail_backends:
+        cfg_option = "enable_%s" % (plugin)
+        if cfg_option in cfg and cfg[cfg_option] == "True":
+            backend_obj = getattr(backends, plugin)
+            enabled_backends[plugin] = backend_obj(cfg)
+
+    log.info("Enabled backends: %s" % enabled_backends.keys())
+
+
+def disable_backend(backend):
+    """
+    example function to disable a backend while we're running
+    """
+    log.info("Disabling : %s" % backend)
+    try:
+        del enabled_backends[backend]
+    except:
+        log.critical("Could not disable %s. Sorry." % backend)
+    else:
+        log.info("Enabled backends: %s" % enabled_backends.keys())
+
+
+def enable_backend(backend):
+    """
+    example function to enable a backend while we're running
+    """
+    try:
+        enabled_backends[backend] = getattr(backends, backend)
+    except:
+        log.critical("Could not enable %s. Sorry." % backend)
+    else:
+        log.info("Enabled backends: %s" % enabled_backends.keys())
 
 
 def send_backends(metrics):
     """
-    will send to enabled backends, i'm thinking it returns how many backends
-    succeded?
+    use the enabled_backends dict to call into the backend send functions
     """
-    pass
+    global enabled_backends
+
+    if len(enabled_backends) < 1:
+        log.critical("At least one Back-end must be enabled in graphios.cfg")
+        sys.exit(1)
+
+    ret = 0
+    processed_lines = 0
+
+    for backend in enabled_backends:
+        processed_lines = enabled_backends[backend].send(metrics)
+        #log.debug('got %s lines from b-e' % processed_lines)
+        ret += processed_lines
+
+    #log.debug("send_backends, returning: %s" % ret)
+    return ret
 
 
 def main():
@@ -356,7 +436,7 @@ def main():
         while True:
             process_spool_dir(spool_directory)
             log.debug("graphios sleeping.")
-            time.sleep(cfg["sleep_time"])
+            time.sleep(float(cfg["sleep_time"]))
     except KeyboardInterrupt:
         log.info("ctrl-c pressed. Exiting graphios.")
 
@@ -375,5 +455,5 @@ if __name__ == '__main__':
         verify_config(cfg)
         configure()
     print cfg
-    sys.exit(1)
+    init_backends()
     main()
