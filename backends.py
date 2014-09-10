@@ -224,7 +224,7 @@ class carbon(object):
         except:
             self.carbon_port = 2004
         else:
-            self.carbon_port = cfg['carbon_port']
+            self.carbon_port = int(cfg['carbon_port'])
 
         try:
             cfg['replacement_character']
