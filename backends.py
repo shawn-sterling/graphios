@@ -313,7 +313,7 @@ class statsd(object):
         except:
             self.statsd_port = 8125
         else:
-            self.statsd_server = cfg['statsd_port']
+            self.statsd_port = int(cfg['statsd_port'])
 
     def convert(self, metrics):
         # Converts the metric object list into a list of statsd tuples
