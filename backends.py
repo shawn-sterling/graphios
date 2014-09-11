@@ -10,7 +10,6 @@ import base64
 import urllib2
 import json
 import os
-
 # ###########################################################
 # #### Librato Backend
 
@@ -50,7 +49,7 @@ class librato(object):
             cfg['namevals']
         except:
             self.namevals = ['GRAPHITEPREFIX', 'SERVICEDESC',
-                            'GRAPHITEPOSTFIX', 'LABEL']
+                             'GRAPHITEPOSTFIX', 'LABEL']
         else:
             self.namevals = cfg['namevals']
 
@@ -107,7 +106,7 @@ class librato(object):
 
         try:
             f = urllib2.urlopen(req, timeout=self.flush_timeout_secs)
-            response = f.read()
+            response = f.read()     # <-- we never look at the response
             f.close()
         except urllib2.HTTPError as error:
             body = error.read()
@@ -146,7 +145,7 @@ class librato(object):
             return 0
 
         # Limit our payload sizes
-        max_metrics_payload = 500
+        max_metrics_payload = 500       # this is never used
 
         headers = {
             'Content-Type': 'application/json',
@@ -161,7 +160,7 @@ class librato(object):
             count += 1
 
             if count >= self.max_metrics_payload:
-                ret = self.flush_payload(headers, metrics)
+                ret = self.flush_payload(headers, metrics)    # ret is not used
                 count = 0
                 metrics = []
 
@@ -233,26 +232,61 @@ class carbon(object):
         else:
             self.replacement_character = cfg['replacement_character']
 
+        try:
+            cfg['carbon_max_metrics']
+            self.carbon_max_metrics = cfg['carbon_max_metrics']
+        except:
+            self.carbon_max_metrics = 200
+
+        try:
+            cfg['use_service_desc']
+            self.use_service_desc = cfg['use_service_desc']
+        except:
+            self.use_service_desc = False
+
     def convert_pickle(self, metrics):
         """
             Converts the metric obj list into a pickle message
         """
         pickle_list = []
+        messages = []
         for m in metrics:
-            path = "%s.%s.%s.%s" % (m.GRAPHITEPREFIX, m.HOSTNAME,
-                                    m.GRAPHITEPOSTFIX, m.LABEL)
+            path = self.build_path(m)
             value = m.LABEL
             timestamp = m.TIMET
-            path = re.sub(r"\.$", '', path)  # fix paths that end in dot
-            path = re.sub(r"\.\.", '.', path)  # fix paths with double dots
-            path = self.fix_string(path)
             metric_tuple = (path, (timestamp, value))
             pickle_list.append(metric_tuple)
+        for pickle_list_chunk in self.chunks(pickle_list,
+                                             self.carbon_max_metrics):
+            payload = pickle.dumps(pickle_list_chunk)
+            header = struct.pack("!L", len(payload))
+            message = header + payload
+            messages.append(message)
+        return messages
 
-        payload = pickle.dumps(pickle_list)
-        header = struct.pack("!L", len(payload))
-        message = header + payload
-        return message
+    def chunks(l, n):
+        """ Yield successive n-sized chunks from l.
+        """
+        for i in xrange(0, len(l), n):
+            yield l[i:i + n]
+
+    def build_path(self, m):
+        """
+            Builds a carbon metric
+        """
+        if self.use_service_desc:
+            # we want: prefix.hostname.service_desc.postfix.perfdata
+            service_desc = self.fixstring(m.SERVICEDESC)
+            path = "%s.%s.%s.%s" % (m.GRAPHITEPREFIX, m.HOSTNAME,
+                                    service_desc, m.GRAPHITEPOSTFIX, m.LABEL)
+
+        else:
+            path = "%s.%s.%s.%s" % (m.GRAPHITEPREFIX, m.HOSTNAME,
+                                    m.GRAPHITEPOSTFIX, m.LABEL)
+        path = re.sub(r"\.$", '', path)  # fix paths that end in dot
+        path = re.sub(r"\.\.", '.', path)  # fix paths with double dots
+        path = self.fix_string(path)
+        return path
 
     def fix_string(self, my_string):
         """
@@ -278,12 +312,13 @@ class carbon(object):
             sock.connect((self.carbon_server, self.carbon_port))
             self.log.debug("connected")
         except Exception, ex:
-            self.log.warning("Can't connect to carbon: %s:%s %s" %
-                        (self.carbon_server, self.carbon_port, ex))
+            self.log.warning("Can't connect to carbon: %s:%s %s" % (
+                             self.carbon_server, self.carbon_port, ex))
 
-        message = self.convert_pickle(metrics)
+        messages = self.convert_pickle(metrics)
         try:
-            sock.sendall(message)
+            for message in messages:
+                sock.sendall(message)
         except Exception, ex:
             ret = False
             self.log.critical("Can't send message to carbon error:%s" % ex)
