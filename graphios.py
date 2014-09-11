@@ -87,6 +87,7 @@ log_max_size = 25165824         # 24 MB
 
 config_file = ''
 debug = True
+enabled_backends = ''
 
 # config dictionary
 cfg = {}
@@ -229,7 +230,7 @@ def configure(opts=''):
     log_handler = logging.handlers.RotatingFileHandler(
         cfg["log_file"], maxBytes=cfg["log_max_size"], backupCount=4,
         #encoding='bz2')
-        )
+    )
     formatter = logging.Formatter(
         "%(asctime)s %(filename)s %(levelname)s %(message)s",
         "%B %d %H:%M:%S")
@@ -263,43 +264,50 @@ def process_log(file_name):
         log.critical("Can't open file:%s error: %s" % (file_name, ex))
         sys.exit(2)
 
-    # tofix: I added this to catch and delete empty files but imo this should
-    # be handled before we get this far.
-    if len(file_array) == 0:
-        handle_file(file_name, 0)
-        return processed_objects
-
     # parse each line into a metric object
     for line in file_array:
         if not re.search("^DATATYPE::", line):
             continue
         #log.debug('parsing: %s' % line)
         graphite_lines += 1
-        mobj = GraphiosMetric()
         variables = line.split('\t')
-        for var in variables:
-            (var_name, value) = var.split('::')
-            value = re.sub("/", cfg["replacement_character"], value)
-            if re.search("PERFDATA", var_name):
-                mobj.PERFDATA = value
-            elif re.search("^\$_", value):
-                continue
-            else:
-                value = re.sub("\s", "", value)
-                setattr(mobj, var_name, value)
-
-        # break out the metric object into one object per perfdata metric
-        log.debug('perfdata:%s' % mobj.PERFDATA)
-        for metric in mobj.PERFDATA.split():
-            nobj = copy.copy(mobj)
-            (nobj.LABEL, d) = metric.split('=')
-            v = d.split(';')[0]
-            u = v
-            nobj.VALUE = re.sub("[a-zA-Z%]", "", v)
-            nobj.UOM = re.sub("[^a-zA-Z]+", "", u)
-            processed_objects.append(nobj)
+        mobj = get_mobj(variables)
+        if mobj:
+            # break out the metric object into one object per perfdata metric
+            log.debug('perfdata:%s' % mobj.PERFDATA)
+            for metric in mobj.PERFDATA.split():
+                nobj = copy.copy(mobj)
+                (nobj.LABEL, d) = metric.split('=')
+                v = d.split(';')[0]
+                u = v
+                nobj.VALUE = re.sub("[a-zA-Z%]", "", v)
+                nobj.UOM = re.sub("[^a-zA-Z]+", "", u)
+                processed_objects.append(nobj)
 
     return processed_objects
+
+
+def get_mobj(nag_array):
+    """
+        takes a split array of nagios variables and returns a mobj if it's
+        valid. otherwise return False.
+    """
+    mobj = GraphiosMetric()
+    for var in nag_array:
+        (var_name, value) = var.split('::')
+        value = re.sub("/", cfg["replacement_character"], value)
+        if re.search("PERFDATA", var_name):
+            mobj.PERFDATA = value
+        elif re.search("^\$_", value):
+            continue
+        else:
+            value = re.sub("\s", "", value)
+            setattr(mobj, var_name, value)
+
+    mobj.validate()
+    if mobj.VALID is True:
+        return mobj
+    return False
 
 
 def handle_file(file_name, graphite_lines):
@@ -311,7 +319,7 @@ def handle_file(file_name, graphite_lines):
     else:
         try:
             os.remove(file_name)
-        except OSError as ex:
+        except (OSError, IOError) as ex:
             log.critical("couldn't remove file %s error:%s" % (file_name, ex))
         else:
             log.debug("deleted %s" % file_name)
@@ -337,17 +345,25 @@ def process_spool_dir(directory):
 
         num_files += 1
         file_dir = os.path.join(directory, perfdata_file)
-        mobjs = process_log(file_dir)
 
-        # we can't remove the file yet, because we don't know if it was sent
-        # to a backend, we need at least one backend to succeed before we
-        # delete it.
+        if os.stat(file_dir)[6] == 0:
+            # file was 0 bytes
+            handle_file(file_dir, 0)
+            continue
+
+        mobjs = process_log(file_dir)
+        mobjs_len = len(mobjs)
         num_lines_processed = send_backends(mobjs)
-        if num_lines_processed > 1:   # This leaks empty files.
+        if num_lines_processed > 1:
+            # this number being over 1 isn't quite right. What if we
+            # wrote to the stdout backend but not any other? Then we are
+            # deleting a file, we shouldn't be. Need to see if any one backend
+            # returns successfully (besides stdout) then we can delete the
+            # file.
             handle_file(file_dir, len(mobjs))
 
-    log.info("Processed %s files (%s metrics) in %s" % (num_files,
-              num_lines_processed, directory))
+    log.info("Processed %s files (%s metrics,%s backended) in %s" % (num_files,
+             mobjs_len, num_lines_processed, directory))
 
 
 def init_backends():
@@ -365,10 +381,10 @@ def init_backends():
 
     #PLUGIN WRITERS! register your new backends by adding their obj name here
     avail_backends = ("carbon",
-                       "statsd",
-                       "librato",
-                       "stdout",
-                     )
+                      "statsd",
+                      "librato",
+                      "stdout",
+                      )
 
     #populate the controller dict from avail + config. this assumes you named
     #your plugin the same as your config option enabling the plugin (eg.
