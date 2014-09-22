@@ -276,13 +276,17 @@ def process_log(file_name):
             # break out the metric object into one object per perfdata metric
             log.debug('perfdata:%s' % mobj.PERFDATA)
             for metric in mobj.PERFDATA.split():
-                nobj = copy.copy(mobj)
-                (nobj.LABEL, d) = metric.split('=')
-                v = d.split(';')[0]
-                u = v
-                nobj.VALUE = re.sub("[a-zA-Z%]", "", v)
-                nobj.UOM = re.sub("[^a-zA-Z]+", "", u)
-                processed_objects.append(nobj)
+                try:
+                    nobj = copy.copy(mobj)
+                    (nobj.LABEL, d) = metric.split('=')
+                    v = d.split(';')[0]
+                    u = v
+                    nobj.VALUE = re.sub("[a-zA-Z%]", "", v)
+                    nobj.UOM = re.sub("[^a-zA-Z]+", "", u)
+                    processed_objects.append(nobj)
+                except:
+                    log.critical("failed to parse metric: %s" % nobj.PERFDATA)
+                    continue
 
     return processed_objects
 

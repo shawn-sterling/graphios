@@ -264,7 +264,7 @@ class carbon(object):
             messages.append(message)
         return messages
 
-    def chunks(l, n):
+    def chunks(self, l, n):
         """ Yield successive n-sized chunks from l.
         """
         for i in xrange(0, len(l), n):
@@ -320,7 +320,6 @@ class carbon(object):
             for message in messages:
                 sock.sendall(message)
         except Exception, ex:
-            ret = False
             self.log.critical("Can't send message to carbon error:%s" % ex)
         else:
             ret += 1
