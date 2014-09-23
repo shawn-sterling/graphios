@@ -336,6 +336,7 @@ def process_spool_dir(directory):
     log.debug("Processing spool directory %s", directory)
     num_files = 0
     mobjs_len=0
+    num_lines_processed=0
     perfdata_files = os.listdir(directory)
     for perfdata_file in perfdata_files:
         mobjs = []
