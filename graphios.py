@@ -158,6 +158,17 @@ class GraphiosMetric(object):
                 self.VALID = True
 
 
+def chk_bool(value):
+    """
+    checks if value is a stringified boolean
+    """
+    if (value.lower() == "true"):
+        return True
+    elif (value.lower() == "false"):
+        return False
+    return value
+
+
 def read_config(config_file):
     if config_file == '':
         config_file = "%s/graphios.cfg" % sys.path[0]
@@ -171,7 +182,7 @@ def read_config(config_file):
             print_debug("section: %s" % section)
             config_dict['name'] = section
             for name, value in config.items(section):
-                config_dict[name] = value
+                config_dict[name] = chk_bool(value)
                 print_debug("config[%s]=%s" % (name, value))
         # print config_dict
         return config_dict
@@ -188,6 +199,7 @@ def verify_config(config_dict):
     """
     will verify the needed variables are found
     """
+    global spool_directory
     ensure_list = ['replacement_character', 'log_file', 'log_max_size',
                    'log_level', 'sleep_time', 'sleep_max', 'test_mode']
     missing_values = []
@@ -199,6 +211,8 @@ def verify_config(config_dict):
         for value in missing_values:
             print "%s\n" % value
         sys.exit(1)
+    if "spool_directory" in config_dict:
+        spool_directory = config_dict['spool_directory']
 
 
 def print_debug(msg):
@@ -209,18 +223,29 @@ def print_debug(msg):
         print msg
 
 
+def verify_opts():
+    """
+    verify needed config options are there
+    """
+    # refactoring configure
+    pass
+
+
 def configure(opts=''):
     """
     sets up graphios config
     """
     global cfg
     global debug
+    global spool_directory
     if opts != '':
         cfg["log_file"] = opts.log_file
         cfg["log_max_size"] = 25165824         # 24 MB
         if opts.verbose:
             cfg["debug"] = True
-        cfg["spool_directory"] = opts.spool_directory
+        if opts.spool_directory:
+            cfg["spool_directory"] = opts.spool_directory
+            spool_directory = opts.spool_directory
         cfg["backend"] = opts.backend
 
     if cfg["log_file"] == "''":
@@ -236,7 +261,7 @@ def configure(opts=''):
     log_handler.setFormatter(formatter)
     log.addHandler(log_handler)
 
-    if "debug" in cfg and cfg["debug"] == "True":
+    if "debug" in cfg and cfg["debug"] is True:
         print("adding streamhandler")
         log.setLevel(logging.DEBUG)
         log.addHandler(logging.StreamHandler())
@@ -273,7 +298,7 @@ def process_log(file_name):
         mobj = get_mobj(variables)
         if mobj:
             # break out the metric object into one object per perfdata metric
-            log.debug('perfdata:%s' % mobj.PERFDATA)
+            # log.debug('perfdata:%s' % mobj.PERFDATA)
             for metric in mobj.PERFDATA.split():
                 try:
                     nobj = copy.copy(mobj)
@@ -317,7 +342,7 @@ def handle_file(file_name, graphite_lines):
     """
     archive processed metric lines and delete the input log files
     """
-    if "test_mode" in cfg and cfg["test_mode"] == "True":
+    if "test_mode" in cfg and cfg["test_mode"] is True:
         log.debug("graphite_lines:%s" % graphite_lines)
     else:
         try:
@@ -413,12 +438,12 @@ def init_backends():
 
     for backend in avail_backends:
         cfg_option = "enable_%s" % (backend)
-        if cfg_option in cfg and cfg[cfg_option] == "True":
+        if cfg_option in cfg and cfg[cfg_option] is True:
             backend_obj = getattr(backends, backend)
             be["enabled_backends"][backend] = backend_obj(cfg)
             nerf_option = "nerf_%s" % (backend)
             if nerf_option in cfg:
-                if cfg[nerf_option] == "False":
+                if cfg[nerf_option] is False:
                     be["essential_backends"].append(backend)
             else:
                 be["essential_backends"].append(backend)
