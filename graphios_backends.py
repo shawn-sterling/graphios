@@ -34,7 +34,7 @@ class librato(object):
         try:
             cfg["librato_email"]
         except:
-            self.log.critical("please define librato_email in the graphios.cfg")
+            self.log.critical("please define librato_email in graphios.cfg")
             sys.exit(1)
         else:
             self.email = cfg['librato_email']
@@ -42,7 +42,7 @@ class librato(object):
         try:
             cfg["librato_token"]
         except:
-            self.log.critical("please define librato_token in the graphios.cfg")
+            self.log.critical("please define librato_token in graphios.cfg")
             sys.exit(1)
         else:
             self.token = cfg['librato_token']
@@ -78,8 +78,7 @@ class librato(object):
                 self.log.debug("adding librato whitelist pattern %s" % pattern)
                 self.whitelist.append(re.compile(pattern))
 
-
-    def add_measure(self, m):
+    def add_measure(self, m):  # this is too complex (9 [mccabe]) refactor me
         wl_match = False
         ts = int(m.TIMET)
         if self.floor_time_secs is not None:
@@ -103,9 +102,9 @@ class librato(object):
 
         # only send whitelisted metrics
         for pattern in self.whitelist:
-            if pattern.search(k) != None:
+            if pattern.search(k) is not None:
                 wl_match = True
-        if wl_match == False:
+        if wl_match is False:
             return None
 
         #add the metric to our gauges dict
@@ -129,15 +128,16 @@ class librato(object):
 
         try:
             f = urllib2.urlopen(req, timeout=self.flush_timeout_secs)
-            response = f.read()
+            response = f.read()  # response is never checked, this could be an
+                                 # error code, or something returned.
             f.close()
         except urllib2.HTTPError as error:
-            self.metrics_sent=0
+            self.metrics_sent = 0
             body = error.read()
             self.log.warning('Failed to send metrics to Librato: Code: \
                                 %d . Response: %s' % (error.code, body))
         except IOError as error:
-            self.metrics_sent=0
+            self.metrics_sent = 0
             if hasattr(error, 'reason'):
                 self.log.warning('Error when sending metrics Librato \
                                     (%s)' % (error.reason))
@@ -148,7 +148,6 @@ class librato(object):
                 self.log.warning('Error when sending metrics Librato \
                                     and I dunno why')
 
-
     def flush(self):
         """
         POST a collection of gauges to Librato.
@@ -158,7 +157,7 @@ class librato(object):
             return 0
 
         # Limit our payload sizes
-        max_metrics_payload = 500       # this is never used
+        max_metrics_payload = 500  # this is never used, delete it?
 
         headers = {
             'Content-Type': 'application/json',
@@ -180,7 +179,6 @@ class librato(object):
         if count > 0:
             self.flush_payload(headers, metrics)
             self.gauges = {}
-
 
     def build_basic_auth(self):
 
@@ -206,7 +204,7 @@ class librato(object):
 
     def send(self, metrics):
 
-        self.metrics_sent=len(metrics)
+        self.metrics_sent = len(metrics)
         # Construct the output
         for m in metrics:
             self.add_measure(m)
@@ -259,7 +257,7 @@ class carbon(object):
 
     def convert_pickle(self, metrics):
         """
-            Converts the metric obj list into a pickle message
+        Converts the metric obj list into a pickle message
         """
         pickle_list = []
         messages = []
@@ -285,7 +283,7 @@ class carbon(object):
 
     def build_path(self, m):
         """
-            Builds a carbon metric
+        Builds a carbon metric
         """
         if self.use_service_desc:
             # we want: prefix.hostname.service_desc.postfix.perfdata
@@ -314,8 +312,8 @@ class carbon(object):
 
     def send(self, metrics):
         """
-            Connect to the Carbon server
-            Send the metrics
+        Connect to the Carbon server
+        Send the metrics
         """
         ret = 0
         sock = socket.socket()
