@@ -43,7 +43,7 @@ import os.path
 import re
 import sys
 import time
-import backends
+import graphios_backends as backends
 
 
 ############################################################
@@ -398,7 +398,7 @@ def init_backends():
                       )
 
     #populate the controller dict from avail + config. this assumes you named
-    #your backend the same as your config option enabling the backend (eg.
+    #your backend the same as the config option that enables your backend (eg.
     #carbon and enable_carbon)
 
     for backend in avail_backends:
@@ -406,11 +406,13 @@ def init_backends():
         if cfg_option in cfg and cfg[cfg_option] == "True":
             backend_obj = getattr(backends, backend)
             be["enabled_backends"][backend] = backend_obj(cfg)
-            be["essential_backends"].append(backend)
-        #remove the backend from essentials if it's configured to be nerfed
-        cfg_option = "nerf_%s" % (backend)
-        if cfg_option in cfg and cfg[cfg_option] == "True":
-            be["essential_backends"].remove(backend)
+            nerf_option = "nerf_%s" % (backend)
+            if nerf_option in cfg:
+                if cfg[nerf_option] == "False":
+                    be["essential_backends"].append(backend)
+            else:
+                be["essential_backends"].append(backend)
+    # not proud of that slovenly conditional ^^
 
     log.info("Enabled backends: %s" % be["enabled_backends"].keys())
 
