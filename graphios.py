@@ -43,7 +43,7 @@ import os.path
 import re
 import sys
 import time
-import backends
+import graphios_backends as backends
 
 
 ############################################################
@@ -87,7 +87,6 @@ log_max_size = 25165824         # 24 MB
 
 config_file = ''
 debug = True
-enabled_backends = ''
 
 # config dictionary
 cfg = {}
@@ -276,13 +275,17 @@ def process_log(file_name):
             # break out the metric object into one object per perfdata metric
             log.debug('perfdata:%s' % mobj.PERFDATA)
             for metric in mobj.PERFDATA.split():
-                nobj = copy.copy(mobj)
-                (nobj.LABEL, d) = metric.split('=')
-                v = d.split(';')[0]
-                u = v
-                nobj.VALUE = re.sub("[a-zA-Z%]", "", v)
-                nobj.UOM = re.sub("[^a-zA-Z]+", "", u)
-                processed_objects.append(nobj)
+                try:
+                    nobj = copy.copy(mobj)
+                    (nobj.LABEL, d) = metric.split('=')
+                    v = d.split(';')[0]
+                    u = v
+                    nobj.VALUE = re.sub("[a-zA-Z%]", "", v)
+                    nobj.UOM = re.sub("[^a-zA-Z]+", "", u)
+                    processed_objects.append(nobj)
+                except:
+                    log.critical("failed to parse metric: %s" % nobj.PERFDATA)
+                    continue
 
     return processed_objects
 
@@ -331,9 +334,12 @@ def process_spool_dir(directory):
     """
     log.debug("Processing spool directory %s", directory)
     num_files = 0
+    mobjs_len = 0
     perfdata_files = os.listdir(directory)
     for perfdata_file in perfdata_files:
         mobjs = []
+        processed_dict = {}
+        all_done = True
 
         if (
             perfdata_file == "host-perfdata" or
@@ -353,17 +359,20 @@ def process_spool_dir(directory):
 
         mobjs = process_log(file_dir)
         mobjs_len = len(mobjs)
-        num_lines_processed = send_backends(mobjs)
-        if num_lines_processed > 1:
-            # this number being over 1 isn't quite right. What if we
-            # wrote to the stdout backend but not any other? Then we are
-            # deleting a file, we shouldn't be. Need to see if any one backend
-            # returns successfully (besides stdout) then we can delete the
-            # file.
+        processed_dict = send_backends(mobjs)
+
+        #process the output from the backends and decide the fate of the file
+        for backend in be["essential_backends"]:
+            if processed_dict[backend] < mobjs_len:
+                log.critical("keeping %s, insufficent metrics sent from %s" %
+                              (file_dir, backend))
+                all_done = False
+        
+        if all_done == True: 
             handle_file(file_dir, len(mobjs))
 
-    log.info("Processed %s files (%s metrics,%s backended) in %s" % (num_files,
-             mobjs_len, num_lines_processed, directory))
+    log.info("Processed %s files (%s metrics) in %s" % (num_files,
+             mobjs_len, directory))
 
 
 def init_backends():
@@ -376,8 +385,10 @@ def init_backends():
     that's enough of a win to justify the global. If you build it, they will
     come.
     """
-    global enabled_backends
-    enabled_backends = {}
+    global be
+    be = {}  #a top-level global for important backend-related stuff
+    be["enabled_backends"] = {}  #a dict of instantiated backend objects
+    be["essential_backends"] = []  #a list of backends we actually care about
 
     #PLUGIN WRITERS! register your new backends by adding their obj name here
     avail_backends = ("carbon",
@@ -387,62 +398,42 @@ def init_backends():
                       )
 
     #populate the controller dict from avail + config. this assumes you named
-    #your plugin the same as your config option enabling the plugin (eg.
+    #your backend the same as the config option that enables your backend (eg.
     #carbon and enable_carbon)
 
-    for plugin in avail_backends:
-        cfg_option = "enable_%s" % (plugin)
+    for backend in avail_backends:
+        cfg_option = "enable_%s" % (backend)
         if cfg_option in cfg and cfg[cfg_option] == "True":
-            backend_obj = getattr(backends, plugin)
-            enabled_backends[plugin] = backend_obj(cfg)
+            backend_obj = getattr(backends, backend)
+            be["enabled_backends"][backend] = backend_obj(cfg)
+            nerf_option = "nerf_%s" % (backend)
+            if nerf_option in cfg:
+                if cfg[nerf_option] == "False":
+                    be["essential_backends"].append(backend)
+            else:
+                be["essential_backends"].append(backend)
+    # not proud of that slovenly conditional ^^
 
-    log.info("Enabled backends: %s" % enabled_backends.keys())
-
-
-def disable_backend(backend):
-    """
-    example function to disable a backend while we're running
-    """
-    log.info("Disabling : %s" % backend)
-    try:
-        del enabled_backends[backend]
-    except:
-        log.critical("Could not disable %s. Sorry." % backend)
-    else:
-        log.info("Enabled backends: %s" % enabled_backends.keys())
-
-
-def enable_backend(backend):
-    """
-    example function to enable a backend while we're running
-    """
-    try:
-        enabled_backends[backend] = getattr(backends, backend)
-    except:
-        log.critical("Could not enable %s. Sorry." % backend)
-    else:
-        log.info("Enabled backends: %s" % enabled_backends.keys())
-
+    log.info("Enabled backends: %s" % be["enabled_backends"].keys())
 
 def send_backends(metrics):
     """
     use the enabled_backends dict to call into the backend send functions
     """
-    global enabled_backends
+    global be
 
-    if len(enabled_backends) < 1:
+    if len(be["enabled_backends"]) < 1:
         log.critical("At least one Back-end must be enabled in graphios.cfg")
         sys.exit(1)
 
-    ret = 0
+    ret = {} # return a dict of who processed what
     processed_lines = 0
 
-    for backend in enabled_backends:
-        processed_lines = enabled_backends[backend].send(metrics)
-        #log.debug('got %s lines from b-e' % processed_lines)
-        ret += processed_lines
+    for backend in be["enabled_backends"]:
+        processed_lines = be["enabled_backends"][backend].send(metrics)
+        #log.debug('%s processed %s metrics' % backend, processed_lines)
+        ret[backend] = processed_lines
 
-    #log.debug("send_backends, returning: %s" % ret)
     return ret
 
 

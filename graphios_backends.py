@@ -27,47 +27,60 @@ class librato(object):
         self.sink_version = "0.0.1"
         self.flush_timeout_secs = 5
         self.gauges = {}
+        self.whitelist = []
+        self.metrics_sent = 0
         self.max_metrics_payload = 500
 
         try:
-            cfg["email"]
+            cfg["librato_email"]
         except:
-            self.log.critical("please define email in the graphios.cfg")
+            self.log.critical("please define librato_email in the graphios.cfg")
             sys.exit(1)
         else:
-            self.email = cfg['email']
+            self.email = cfg['librato_email']
 
         try:
-            cfg["token"]
+            cfg["librato_token"]
         except:
-            self.log.critical("please define token in the graphios.cfg")
+            self.log.critical("please define librato_token in the graphios.cfg")
             sys.exit(1)
         else:
-            self.token = cfg['token']
+            self.token = cfg['librato_token']
 
         try:
-            cfg['namevals']
+            cfg['librato_namevals']
         except:
             self.namevals = ['GRAPHITEPREFIX', 'SERVICEDESC',
                              'GRAPHITEPOSTFIX', 'LABEL']
         else:
-            self.namevals = cfg['namevals']
+            self.namevals = json.loads(cfg['librato_namevals'])
 
         try:
-            cfg['sourcevals']
+            cfg['librato_sourcevals']
         except:
             self.sourcevals = ['HOSTNAME']
         else:
-            self.sourcevals = cfg['sourcevals']
+            self.sourcevals = json.loads(cfg['librato_sourcevals'])
 
         try:
-            cfg["floor_time_secs"]
+            cfg["librato_floor_time_secs"]
         except:
             self.floor_time_secs = 15
         else:
-            self.floor_time_secs = cfg["floor_time_secs"]
+            self.floor_time_secs = cfg["librato_floor_time_secs"]
+
+        try:
+            cfg["librato_whitelist"]
+        except:
+            self.whitelist = [re.compile(".*")]
+        else:
+            for pattern in json.loads(cfg["librato_whitelist"]):
+                self.log.debug("adding librato whitelist pattern %s" % pattern)
+                self.whitelist.append(re.compile(pattern))
+
 
     def add_measure(self, m):
+        wl_match = False
         ts = int(m.TIMET)
         if self.floor_time_secs is not None:
             ts = (ts / self.floor_time_secs) * self.floor_time_secs
@@ -87,12 +100,22 @@ class librato(object):
         name = re.sub(r"\.\.", '.', name)  # fix names with double dots
 
         k = "%s\t%s" % (name, source)
+
+        # only send whitelisted metrics
+        for pattern in self.whitelist:
+            if pattern.search(k) != None:
+                wl_match = True
+        if wl_match == False:
+            return None
+
+        #add the metric to our gauges dict
         if k not in self.gauges:
             self.gauges[k] = {
                 'name': name,
                 'source': source,
                 'measure_time': ts,
             }
+
         value = float(m.VALUE)
         self.gauges[k]['value'] = value
 
@@ -106,13 +129,15 @@ class librato(object):
 
         try:
             f = urllib2.urlopen(req, timeout=self.flush_timeout_secs)
-            response = f.read()     # <-- we never look at the response
+            response = f.read()
             f.close()
         except urllib2.HTTPError as error:
+            self.metrics_sent=0
             body = error.read()
             self.log.warning('Failed to send metrics to Librato: Code: \
                                 %d . Response: %s' % (error.code, body))
         except IOError as error:
+            self.metrics_sent=0
             if hasattr(error, 'reason'):
                 self.log.warning('Error when sending metrics Librato \
                                     (%s)' % (error.reason))
@@ -123,18 +148,6 @@ class librato(object):
                 self.log.warning('Error when sending metrics Librato \
                                     and I dunno why')
 
-        # should we not do something with the actual response? make sure it's
-        # 200 ok, or something?
-
-        # we capture the http error code and log it in the case of trouble in
-        # the try section above, here's a sample log line from some metric data
-        # that got rejected from librato because it's too old:
-
-        """
-        Failed to send metrics to Librato: Code: 400 . Response: {"errors":
-        {"params":{"measure_time":["is too far in the past"]}}}
-        """
-        return len(g)
 
     def flush(self):
         """
@@ -160,7 +173,7 @@ class librato(object):
             count += 1
 
             if count >= self.max_metrics_payload:
-                ret = self.flush_payload(headers, metrics)    # ret is not used
+                self.flush_payload(headers, metrics)
                 count = 0
                 metrics = []
 
@@ -168,7 +181,6 @@ class librato(object):
             self.flush_payload(headers, metrics)
             self.gauges = {}
 
-        return count
 
     def build_basic_auth(self):
 
@@ -194,14 +206,15 @@ class librato(object):
 
     def send(self, metrics):
 
+        self.metrics_sent=len(metrics)
         # Construct the output
         for m in metrics:
             self.add_measure(m)
 
         # Flush
-        ret = self.flush()
+        self.flush()
 
-        return ret
+        return self.metrics_sent
 
 
 ############################################################
@@ -264,7 +277,7 @@ class carbon(object):
             messages.append(message)
         return messages
 
-    def chunks(l, n):
+    def chunks(self, l, n):
         """ Yield successive n-sized chunks from l.
         """
         for i in xrange(0, len(l), n):
@@ -320,7 +333,6 @@ class carbon(object):
             for message in messages:
                 sock.sendall(message)
         except Exception, ex:
-            ret = False
             self.log.critical("Can't send message to carbon error:%s" % ex)
         else:
             ret += 1
