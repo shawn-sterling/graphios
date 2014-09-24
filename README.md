@@ -4,7 +4,7 @@ Graphios is a script to emit nagios perfdata to various upstream metrics
 processing and time-series (graphing) systems. It's currently compatible with
 [graphite], [statsd], and [Librato], with [influxDB], [Heka], and possibly
 [RRDTool] support coming soon. Graphios can emit Nagios metrics to any number
-of supported upstream metrics systems simultaenously. 
+of supported upstream metrics systems simultaenously.
 
 # Requirements
 
@@ -20,16 +20,32 @@ Graphios is released under the [GPL v2](http://www.gnu.org/licenses/gpl-2.0.html
 
 The goal of graphios is to get nagios perf data into a graphing system like
 graphite (carbon). Systems like these typically use a dot-delimited metric name
-to store each metric hierarcicly, so it can be easily located later. 
+to store each metric hierarcicly, so it can be easily located later.
 
-Graphios creates these metric names by reading a pair of custom variables that
+Graphios creates these metric names one of two ways.
+
+1 - by reading a pair of custom variables that
 you configure for services and hosts called \_graphiteprefix and
 \_graphitepostfix.  Together, these custom variables enable you to control the
 metric name that gets sent to whatever back-end metrics system you're using.
 You don't have to set them both, but things will certainly be less confusing
 for you if you set at least one or the other.
 
-The metric name graphios will emit is:
+2 - by using your service description in the format:
+
+\_graphiteprefix.hostname.service-description.\_graphitepostfix.perfdata
+
+so if you didn't feel like setting your graphiteprefix and postfix, it would
+just use:
+
+hostname.service-description.perfdata
+
+If you are using option 2, that means EVERY service will be sent to graphite.
+You will also want to make sure your service descriptions are consistant or
+your backend naming will be really weird.
+
+I think most people will use the first option, so let's work with that for a
+bit. What gets sent to graphite is this:
 
 graphiteprefix.hostname.graphitepostfix.perfdata
 
@@ -50,7 +66,7 @@ If we configured a host with a custom graphiteprefix variable like this:
 define host {
     host_name                   myhost
     check_command               check_host_alive
-    _graphiteprefix             monitoring.nagios01.pingto
+    _graphiteprefix             ops.nagios01.pingto
 }
 </pre>
 
@@ -102,58 +118,51 @@ we collected the data, followed finally by the metric-type.
 
 You should think carefully about how you name your metrics, because later on,
 these names will enable you to easily combine metrics (like load1) across
-various sources (like all webservers). 
+various sources (like all webservers).
 
 # A few words on Naming things for Librato
 
 The default configuration that works for Graphite also does what you'd expect
 for Librato, so if you're just getting started, and you want to check out
-Librato, don't worry about it, ignore this section and forge ahead.  
+Librato, don't worry about it, ignore this section and forge ahead.
 
 But you're a power user, you should be aware that the Librato Backend is
-actually generating a differet metric name than the other plugins. 
+actually generating a differet metric name than the other plugins.
 Librato is a very metrics-centric platform. Metrics are the first-class entity,
 and sources (like hosts), are actually a separate dimension in their system.
 This is very cool when you're monitoring ephemeral things that aren't hosts,
-like threads, or worker processes, but it slightly complicates things here. 
+like threads, or worker processes, but it slightly complicates things here.
 
 So, for example, where the Graphite plugin generates a name like this (from the
-example above): 
+example above):
 
     datacenter01.webservers.myhost.nrdp.load.load1
 
-The Librato plugin will generate a name that omits the hostname: 
+The Librato plugin will generate a name that omits the hostname:
 
     datacenter01.webservers.nrdp.load.load1
 
 And then it will automatically send the hostname as the source dimension when
 it emits the metric to Librato. For 99% of everyone, this is exactly what you
 want. But if you're a 1%'er you can influence this behavior by modifying the
-"namevals" and "sourcevals" lists in the librato section of the graphios.cfg 
+"namevals" and "sourcevals" lists in the librato section of the graphios.cfg
 
 Automatic names
 ---------------
 
-Why not Automatic names instead of custom variables you ask?
+UPDATED: Graphios now supports automatic names, because custom variables are
+hard. :)
 
-Initially, Graphios was designed to convert the Nagios service\_description
-macro into 'my-service-description' so that every metric name automatically
-became:
+This is an all or nothing setting, meaning if you turn this on all services
+will now send to graphios (instead of just the ones with the prefix and postfix
+setup). This will work fine, so long as you have very consistent service
+descriptions.
 
-hostname.my-service-description.perfdata
+To turn this on, modify the graphios.cfg and change:
 
-This worked fine on the Nagios side, but quickly became disorganized in my
-metrics system (Graphite). Individual metrics were difficult to find, and it
-was even harder to group metrics across sources inside Graphite's various
-computational functions.  I wound up creating several custom rules inside
-Graphios and made a separate config file to manage them. Of course, that meant
-you needed to manage a custom metric schema configuration on top of the nagios
-configs, which, I decided, would eventually transform me into a raging
-alchoholic.  
-
-So I went with keeping the naming configuration in the Nagios configs where I
-sincerely feel it belongs, and I've never looked back. If you have a better
-idea I'd love to hear it.
+use_service_desc = False
+to
+use_service_desc = True
 
 Big Fat Warning
 ---------------
@@ -258,12 +267,12 @@ This file should be copied into the same directory as graphios.py
 (4) graphios.cfg
 ---------------
 You can copy graphios.cfg to /etc or store it together with graphios.py. In
-either case, you may need to modify it to suit your environment. 
+either case, you may need to modify it to suit your environment.
 
 Out of the box, it enables the carbon back-end and sends pickled metrics to
 127.0.0.1:2004.  It also specifies the location of the graphios log and spool
 directories, and controls things like log levels, sleep intervals, and of
-course, backends like carbon, statsd, and librato. 
+course, backends like carbon, statsd, and librato.
 
 (5) Run it!
 ---------------
@@ -526,7 +535,5 @@ Open an Issue on github and I will try to fix it asap.
 # Contributing
 
 I'm open to any feedback / patches / suggestions.
-
-I'm still learning python so any python advice would be much appreciated.
 
 Shawn Sterling shawn@systemtemplar.org
