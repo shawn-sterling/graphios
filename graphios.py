@@ -90,7 +90,7 @@ debug = True
 
 # config dictionary
 cfg = {}
-
+be = ""
 # default config values (these will be over-ridden with the config
 
 # #### You should stop changing things unless you know what you are doing #####
@@ -332,6 +332,7 @@ def process_spool_dir(directory):
     """
     processes the files in the spool directory
     """
+    global be
     log.debug("Processing spool directory %s", directory)
     num_files = 0
     mobjs_len = 0
@@ -340,23 +341,12 @@ def process_spool_dir(directory):
         mobjs = []
         processed_dict = {}
         all_done = True
+        file_dir = os.path.join(directory, perfdata_file)
 
-        if (
-            perfdata_file == "host-perfdata" or
-            perfdata_file == "service-perfdata"
-        ):
-            continue
-        elif re.match('^_', perfdata_file):
+        if check_skip_file(perfdata_file, file_dir):
             continue
 
         num_files += 1
-        file_dir = os.path.join(directory, perfdata_file)
-
-        if os.stat(file_dir)[6] == 0:
-            # file was 0 bytes
-            handle_file(file_dir, 0)
-            continue
-
         mobjs = process_log(file_dir)
         mobjs_len = len(mobjs)
         processed_dict = send_backends(mobjs)
@@ -365,14 +355,34 @@ def process_spool_dir(directory):
         for backend in be["essential_backends"]:
             if processed_dict[backend] < mobjs_len:
                 log.critical("keeping %s, insufficent metrics sent from %s" %
-                              (file_dir, backend))
+                            (file_dir, backend))
                 all_done = False
-        
-        if all_done == True: 
+
+        if all_done is True:
             handle_file(file_dir, len(mobjs))
 
     log.info("Processed %s files (%s metrics) in %s" % (num_files,
              mobjs_len, directory))
+
+
+def check_skip_file(file_name, file_dir):
+    """
+    checks if file should be skipped
+    """
+    if (
+        file_name == "host-perfdata" or
+        file_name == "service-perfdata"
+    ):
+        return True
+    elif re.match('^_', file_name):
+        return True
+
+    if os.stat(file_dir)[6] == 0:
+        # file was 0 bytes
+        handle_file(file_dir, 0)
+        return True
+
+    return False
 
 
 def init_backends():
@@ -386,9 +396,9 @@ def init_backends():
     come.
     """
     global be
-    be = {}  #a top-level global for important backend-related stuff
-    be["enabled_backends"] = {}  #a dict of instantiated backend objects
-    be["essential_backends"] = []  #a list of backends we actually care about
+    be = {}  # a top-level global for important backend-related stuff
+    be["enabled_backends"] = {}  # a dict of instantiated backend objects
+    be["essential_backends"] = []  # a list of backends we actually care about
 
     #PLUGIN WRITERS! register your new backends by adding their obj name here
     avail_backends = ("carbon",
@@ -416,6 +426,7 @@ def init_backends():
 
     log.info("Enabled backends: %s" % be["enabled_backends"].keys())
 
+
 def send_backends(metrics):
     """
     use the enabled_backends dict to call into the backend send functions
@@ -426,7 +437,7 @@ def send_backends(metrics):
         log.critical("At least one Back-end must be enabled in graphios.cfg")
         sys.exit(1)
 
-    ret = {} # return a dict of who processed what
+    ret = {}  # return a dict of who processed what
     processed_lines = 0
 
     for backend in be["enabled_backends"]:
