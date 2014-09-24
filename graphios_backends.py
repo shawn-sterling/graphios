@@ -263,7 +263,7 @@ class carbon(object):
         messages = []
         for m in metrics:
             path = self.build_path(m)
-            value = m.LABEL
+            value = m.VALUE
             timestamp = m.TIMET
             metric_tuple = (path, (timestamp, value))
             pickle_list.append(metric_tuple)
@@ -287,9 +287,10 @@ class carbon(object):
         """
         if self.use_service_desc:
             # we want: prefix.hostname.service_desc.postfix.perfdata
-            service_desc = self.fixstring(m.SERVICEDESC)
-            path = "%s.%s.%s.%s" % (m.GRAPHITEPREFIX, m.HOSTNAME,
-                                    service_desc, m.GRAPHITEPOSTFIX, m.LABEL)
+            service_desc = self.fix_string(m.SERVICEDESC)
+            path = "%s.%s.%s.%s.%s" % (m.GRAPHITEPREFIX, m.HOSTNAME,
+                                       service_desc, m.GRAPHITEPOSTFIX,
+                                       m.LABEL)
 
         else:
             path = "%s.%s.%s.%s" % (m.GRAPHITEPREFIX, m.HOSTNAME,
