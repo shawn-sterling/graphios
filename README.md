@@ -536,4 +536,9 @@ Open an Issue on github and I will try to fix it asap.
 
 I'm open to any feedback / patches / suggestions.
 
+# Special Thanks
+
+Special thanks to Dave Josephsen who added the multiple backend support and
+worked with me to design and build the new version of graphios.
+
 Shawn Sterling shawn@systemtemplar.org
