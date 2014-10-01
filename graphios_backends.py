@@ -311,22 +311,22 @@ class carbon(object):
         """
         ret = 0
         sock = socket.socket()
-        servers=self.carbon_servers.split(",")
+        servers = self.carbon_servers.split(",")
         for serv in servers:
             if ":" in serv:
-                server,port=serv.split(":")
-                port=int(port)
+                server, port = serv.split(":")
+                port = int(port)
             else:
-                server=serv
-                port=2004
+                server = serv
+                port = 2004
             self.log.debug("Connecting to carbon at %s:%s" %
-                       (server, port))
+                          (server, port))
             try:
                 sock.connect((server, port))
                 self.log.debug("connected")
             except Exception, ex:
                 self.log.warning("Can't connect to carbon: %s:%s %s" % (
-                                  server, port, ex))
+                                 server, port, ex))
 
             messages = self.convert_pickle(metrics)
             try:
@@ -375,22 +375,22 @@ class statsd(object):
 
         mlist = self.convert(metrics)
         ret = 0
-        servers=self.statsd_servers.split(",")
+        servers = self.statsd_servers.split(",")
         for serv in servers:
             if ":" in serv:
-                server,port=serv.split(":")
-                port=int(port)
+                server, port = serv.split(":")
+                port = int(port)
             else:
-                server=serv
-                port=8125
+                server = serv
+                port = 8125
             self.log.debug("sending to statsd at %s:%s" %
-                             (server, port))
+                          (server, port))
             for m in mlist:
                 try:
                     sock.sendto(m, (server, port))
                 except Exception, ex:
                     self.log.critical("Can't send metric to statsd error:%s"
-                                        % ex)
+                                      % ex)
                 else:
                     ret += 1
 
