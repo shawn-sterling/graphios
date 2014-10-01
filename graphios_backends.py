@@ -53,14 +53,14 @@ class librato(object):
             self.namevals = ['GRAPHITEPREFIX', 'SERVICEDESC',
                              'GRAPHITEPOSTFIX', 'LABEL']
         else:
-            self.namevals = json.loads(cfg['librato_namevals'])
+            self.namevals = cfg['librato_namevals'].split(",")
 
         try:
             cfg['librato_sourcevals']
         except:
             self.sourcevals = ['HOSTNAME']
         else:
-            self.sourcevals = json.loads(cfg['librato_sourcevals'])
+            self.sourcevals = cfg['librato_sourcevals'].split(",")
 
         try:
             cfg["librato_floor_time_secs"]
@@ -223,18 +223,11 @@ class carbon(object):
         self.log = logging.getLogger("log.backends.carbon")
         self.log.info("Carbon Backend Initialized")
         try:
-            cfg['carbon_server']
+            cfg['carbon_servers']
         except:
-            self.carbon_server = '127.0.0.1'
+            self.carbon_servers = '127.0.0.1'
         else:
-            self.carbon_server = cfg['carbon_server']
-
-        try:
-            cfg['carbon_port']
-        except:
-            self.carbon_port = 2004
-        else:
-            self.carbon_port = int(cfg['carbon_port'])
+            self.carbon_servers = cfg['carbon_servers']
 
         try:
             cfg['replacement_character']
@@ -318,25 +311,32 @@ class carbon(object):
         """
         ret = 0
         sock = socket.socket()
-        self.log.debug("Connecting to carbon at %s:%s" %
-                       (self.carbon_server, self.carbon_port))
-        try:
-            sock.connect((self.carbon_server, self.carbon_port))
-            self.log.debug("connected")
-        except Exception, ex:
-            self.log.warning("Can't connect to carbon: %s:%s %s" % (
-                             self.carbon_server, self.carbon_port, ex))
+        servers=self.carbon_servers.split(",")
+        for serv in servers:
+            if ":" in serv:
+                server,port=serv.split(":")
+                port=int(port)
+            else:
+                server=serv
+                port=2004
+            self.log.debug("Connecting to carbon at %s:%s" %
+                       (server, port))
+            try:
+                sock.connect((server, port))
+                self.log.debug("connected")
+            except Exception, ex:
+                self.log.warning("Can't connect to carbon: %s:%s %s" % (
+                                  server, port, ex))
 
-        messages = self.convert_pickle(metrics)
-        try:
-            for message in messages:
-                sock.sendall(message)
-        except Exception, ex:
-            self.log.critical("Can't send message to carbon error:%s" % ex)
-        else:
-            ret += 1
-
-        sock.close()
+            messages = self.convert_pickle(metrics)
+            try:
+                for message in messages:
+                    sock.sendall(message)
+            except Exception, ex:
+                self.log.critical("Can't send message to carbon error:%s" % ex)
+            else:
+                ret += 1
+            sock.close()
         return ret
 
 
@@ -348,18 +348,11 @@ class statsd(object):
         self.log = logging.getLogger("log.backends.statsd")
         self.log.info("Statsd backend initialized")
         try:
-            cfg['statsd_server']
+            cfg['statsd_servers']
         except:
-            self.statsd_server = '127.0.0.1'
+            self.statsd_servers = '127.0.0.1'
         else:
-            self.statsd_server = cfg['statsd_server']
-
-        try:
-            cfg['statsd_port']
-        except:
-            self.statsd_port = 8125
-        else:
-            self.statsd_port = int(cfg['statsd_port'])
+            self.statsd_servers = cfg['statsd_servers']
 
     def convert(self, metrics):
         # Converts the metric object list into a list of statsd tuples
@@ -379,18 +372,27 @@ class statsd(object):
         # Fire metrics at the statsd server and hope for the best (loludp)
         ret = True
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.log.debug("sending to statsd at %s:%s" %
-                       (self.statsd_server, self.statsd_port))
 
         mlist = self.convert(metrics)
         ret = 0
-        for m in mlist:
-            try:
-                sock.sendto(m, (self.statsd_server, self.statsd_port))
-            except Exception, ex:
-                self.log.critical("Can't send metric to statsd error:%s" % ex)
+        servers=self.statsd_servers.split(",")
+        for serv in servers:
+            if ":" in serv:
+                server,port=serv.split(":")
+                port=int(port)
             else:
-                ret += 1
+                server=serv
+                port=8125
+            self.log.debug("sending to statsd at %s:%s" %
+                             (server, port))
+            for m in mlist:
+                try:
+                    sock.sendto(m, (server, port))
+                except Exception, ex:
+                    self.log.critical("Can't send metric to statsd error:%s"
+                                        % ex)
+                else:
+                    ret += 1
 
         return ret
 
