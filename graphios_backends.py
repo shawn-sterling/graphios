@@ -78,33 +78,38 @@ class librato(object):
                 self.log.debug("adding librato whitelist pattern %s" % pattern)
                 self.whitelist.append(re.compile(pattern))
 
-    def add_measure(self, m):  # this is too complex (9 [mccabe]) refactor me
-        wl_match = False
+
+    def build_path(self, vals, m):
+        path = ''
+        for s in vals:
+            path += getattr(m, s)
+            path += '.'
+        path = re.sub(r"^\.", '', path)  # fix sources that begin in dot
+        path = re.sub(r"\.$", '', path)  # fix sources that end in dot
+        path = re.sub(r"\.\.", '.', path)  # fix sources with double dots
+        return path
+
+    def k_not_in_whitelist(self, k):
+        # return True if k isn't whitelisted
+        wl_match = True
+        for pattern in self.whitelist:
+            if pattern.search(k) is not None:
+                return False
+        return True
+
+
+    def add_measure(self, m):
         ts = int(m.TIMET)
         if self.floor_time_secs is not None:
             ts = (ts / self.floor_time_secs) * self.floor_time_secs
-
-        source = ''
-        for s in self.sourcevals:
-            source += getattr(m, s)
-            source += '.'
-        source = re.sub(r"\.$", '', source)  # fix sources that end in dot
-        source = re.sub(r"\.\.", '.', source)  # fix sources with double dots
-
-        name = ''
-        for n in self.namevals:
-            name += getattr(m, n)
-            name += '.'
-        name = re.sub(r"\.$", '', name)  # fix names that end in dot
-        name = re.sub(r"\.\.", '.', name)  # fix names with double dots
-
+        
+        source = self.build_path(self.sourcevals, m)
+        name = self.build_path(self.namevals, m)
+                
         k = "%s\t%s" % (name, source)
 
-        # only send whitelisted metrics
-        for pattern in self.whitelist:
-            if pattern.search(k) is not None:
-                wl_match = True
-        if wl_match is False:
+        #bail if this metric isn't whitelisted
+        if self.k_not_in_whitelist(k):
             return None
 
         #add the metric to our gauges dict
@@ -128,8 +133,7 @@ class librato(object):
 
         try:
             f = urllib2.urlopen(req, timeout=self.flush_timeout_secs)
-            response = f.read()  # response is never checked, this could be an
-                                 # error code, or something returned.
+            #f.read()
             f.close()
         except urllib2.HTTPError as error:
             self.metrics_sent = 0
