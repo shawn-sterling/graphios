@@ -2,7 +2,7 @@
 
 Graphios is a script to emit nagios perfdata to various upstream metrics
 processing and time-series (graphing) systems. It's currently compatible with
-[graphite], [statsd], and [Librato], with [influxDB], [Heka], and possibly
+[graphite], [statsd], and [Librato], with possibly [influxDB], [Heka], and
 [RRDTool] support coming soon. Graphios can emit Nagios metrics to any number
 of supported upstream metrics systems simultaenously.
 
@@ -164,15 +164,15 @@ use_service_desc = False
 to
 use_service_desc = True
 
+You can still use the graphite prefix and postfix variables but you don't have
+to.
+
 Big Fat Warning
 ---------------
 
 Graphios assumes your checks are using the same unit of measurement. Most
 plugins support this, some do not. check\_icmp) always reports in ms for
-example. If your plugins do not support doing this, you can wrap your plugins
-using check\_mp (another program I made, should be on github shortly if not
-already).
-
+example.
 
 # Installation
 
@@ -180,8 +180,35 @@ This is recommended for intermediate+ Nagios administrators. If you are just
 learning Nagios this might be a difficult pill to swallow depending on your
 experience level.
 
-I have been using this in production on a medium size nagios installation for a
-couple months.
+Hundreds of people have emailed me their success stories on getting graphios
+working. I have been using this in production on a medium size nagios
+installation for a couple years.
+
+There are now a few ways to get graphios installed.
+
+1) Use pypi
+
+    pip install graphios
+
+    NOTE: This will attempt to find your nagios.cfg and add the configuration
+    steps 1 and 2 for you (Don't worry we back up the file before touching it)
+
+2) Grab the spec file / deb file and build and install
+
+3) Clone it yourself
+
+    git clone https://github.com/shawn-sterling/graphios.git
+    cd graphios
+    cp graphios.py /my/favorite/directory
+    cp graphios.cfg /my/secondfavorite/directory
+
+    The pip/rpm/deb installs put things like this:
+    /etc/graphios/graphios.cfg
+    /usr/local/bin/graphios.py
+    FIXME: finish this up
+
+
+# Configuration
 
 Setting this up on the nagios front is very much like pnp4nagios with npcd.
 (You do not need to have any pnp4nagios experience at all). If you are already
@@ -189,11 +216,29 @@ running pnp4nagios , check out my pnp4nagios notes (below).
 
 Steps:
 
-(1) nagios.cfg
+(1) graphios.cfg
+----------------
+
+Your graphios.cfg can live anywhere you want, you just need to modify your
+init script to match. If no config is found it will use the some directory
+as the graphios.py is in. The pip installer/rpm/deb will put it in
+/etc/graphios/graphios.cfg
+
+Out of the box, it enables the carbon back-end and sends pickled metrics to
+127.0.0.1:2004.  It also specifies the location of the graphios log and spool
+directories, and controls things like log levels, sleep intervals, and of
+course, backends like carbon, statsd, and librato.
+
+The config file is well commented, adding/chaning backends is very simple.
+
+(2) nagios.cfg
 --------------
 
-Your nagios.cfg is going to need to modified to send the graphite data to the perfdata files.
+Your nagios.cfg is going to need to modified to send the graphite data to the
+perfdata files. If you have installed with pip or the rpm/deb this may have
+already been done for you.
 
+The following needs to be put into your nagios.cfg
 <pre>
 service_perfdata_file=/var/spool/nagios/graphios/service-perfdata
 service_perfdata_file_template=DATATYPE::SERVICEPERFDATA\tTIMET::$TIMET$\tHOSTNAME::$HOSTNAME$\tSERVICEDESC::$SERVICEDESC$\tSERVICEPERFDATA::$SERVICEPERFDATA$\tSERVICECHECKCOMMAND::$SERVICECHECKCOMMAND$\tHOSTSTATE::$HOSTSTATE$\tHOSTSTATETYPE::$HOSTSTATETYPE$\tSERVICESTATE::$SERVICESTATE$\tSERVICESTATETYPE::$SERVICESTATETYPE$\tGRAPHITEPREFIX::$_SERVICEGRAPHITEPREFIX$\tGRAPHITEPOSTFIX::$_SERVICEGRAPHITEPOSTFIX$
@@ -219,19 +264,24 @@ for hosts:
 $\_HOSTGRAPHITEPREFIX
 $\_HOSTGRAPHITEPOSTFIX
 
-The prepended HOST and SERVICE is just the way nagios works, \_HOSTGRAPHITEPREFIX means it's the \_GRAPHITEPREFIX variable from host configuration.
+The prepended HOST and SERVICE is just the way nagios works,
+\_HOSTGRAPHITEPREFIX means it's the \_GRAPHITEPREFIX variable from host
+configuration.
 
-(2) nagios commands
+(3) nagios commands
 -------------------
 
-There are 2 commands we setup in the nagios.cfg:
+There are 2 commands we setup in the nagios.cfg, which if you used pip or the
+rpm/deb may have already been setup for you. We need:
 
 graphite\_perf\_service
 graphite\_perf\_host
 
 Which we now need to define:
 
-I use include dirs, so I make a new file called graphios\_commands.cfg inside my include dir. Do that, or add the below commands to one of your existing nagios config files.
+I use include dirs, so I make a new file called graphios\_commands.cfg inside
+my include dir. Do that, or add the below commands to one of your existing
+nagios config files.
 
 #### NOTE: Your spool directory may be different, this is setup in step (1) the service_perfdata_file, and host_perfdata_file.
 
@@ -250,45 +300,27 @@ define command {
 
 All these commands do is move the current files to a different filename that we can process without interrupting nagios. This way nagios doesn't have to sit around waiting for us to process the results.
 
-
-(3) graphios.py, and backends.py
+(4) Run it!
 ---------------
 
-It doesn't matter where graphios.py lives, I put it in ~nagios/bin . You can
-put it where-ever makes you happy.
+We recommend running graphios.py from the console for the first time, this will
+make sure things are sending the way you think they are. A good example would
+be:
 
-The graphios.py can run as whatever user you want, as long as you have access
-to the spool directory, and log file.
+#FIXME
+./graphios.py --spool-directory /var/spool/nagios/graphios \
+--log-file /tmp/graphios.log \
+--backend stdout
 
-The backend modules graphios uses to ship metrics to the various
-metrics-backends it supports is housed in a separate file called backends.py.
-This file should be copied into the same directory as graphios.py
+and if there are problems add
 
-(4) graphios.cfg
----------------
-You can copy graphios.cfg to /etc or store it together with graphios.py. In
-either case, you may need to modify it to suit your environment.
+--verbose
 
-Out of the box, it enables the carbon back-end and sends pickled metrics to
-127.0.0.1:2004.  It also specifies the location of the graphios log and spool
-directories, and controls things like log levels, sleep intervals, and of
-course, backends like carbon, statsd, and librato.
-
-(5) Run it!
----------------
-
-We recommend running graphios.py from the console for the first time, rather
-than using the init script. You may want to temporarily set log\_level to
-'DEBUG' and test\_mode to True in graphios.cfg just to see what metrics you'll
-emit. Don't forget to change them back after, as the DEBUG log\_level is very
-verbose, and nothing will actually happen at all until you disable test mode.
-
-Some of these can also be set via command line parameters:
+Other command line options:
 <pre>
-$ ./graphios.py -h
-
 Usage: graphios.py [options]
 sends nagios performance data to carbon.
+
 
 Options:
   -h, --help            show this help message and exit
@@ -296,20 +328,25 @@ Options:
   --spool-directory=SPOOL_DIRECTORY
                         where to look for nagios performance data
   --log-file=LOG_FILE   file to log to
-
+  --backend=BACKEND     sets which storage backend to use
+  --config=CONFIG_FILE  set custom config file location
 </pre>
 
 
-(6) Optional init script: graphios
+(5) Optional init script: graphios
 ----------------------------------
 
 Remember: *screen* is not a daemon management tool.
+
+If you installed with pip/rpm/deb this part is done for you!
 
 <pre>
 cp graphios.init /etc/init.d/graphios
 chown root:root /etc/init.d/graphios
 chmod 750 /etc/init.d/graphios
 </pre>
+FIXME: Add systemd
+
 
 #### NOTE: You may need to change the location and username that the script runs as. this slightly depending on where you decided to put graphios.py
 
@@ -321,7 +358,7 @@ prog="/opt/nagios/bin/graphios.py"
 GRAPHIOS_USER="nagios"
 </pre>
 
-(7) Your host and service configs
+(6) Your host and service configs
 ---------------------------------
 
 Once you have done the above you need to add a custom variable to the hosts and
@@ -436,7 +473,7 @@ change the command_line to be:
 command_line    /path/to/myscript.sh
 </pre>
 
-You should now be able to start at step 3 on the above instructions.
+You should now be able to skip steps 2 and 3 on the configuration instructions.
 
 # OMD (Open Monitoring Distribution) Notes:
 
