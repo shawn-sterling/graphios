@@ -9,7 +9,9 @@ import re
 
 
 def find_nagios_cfg(lookin):
-#find nagios.cfg
+    """
+    finds the nagios.cfg given list of directories
+    """
     for path in lookin:
         for root, dirs, files in os.walk(path):
             if "nagios.cfg" in files:
@@ -17,10 +19,11 @@ def find_nagios_cfg(lookin):
 
 
 def parse_nagios_cfg(nag_cfg):
-#parse it
+    """
+    parses the nagios.cfg
+    """
     nconfig = {}
     inputfile = open(nag_cfg, 'r')
-
     for line in inputfile:
         if re.match('[a-zA-Z]', line[0]):
             try:
@@ -29,12 +32,14 @@ def parse_nagios_cfg(nag_cfg):
                 continue
             else:
                 nconfig[option.rstrip()] = value.rstrip()
-
     inputfile.close()
     return nconfig
 
 
 def add_perfdata_config(nconfig, nag_cfg):
+    """
+    adds the graphios perfdata cfg to the nagios.cfg
+    """
     main_config = [
         "\n",
         "###### Auto-generated Graphios configs #######",
@@ -73,7 +78,6 @@ def add_perfdata_config(nconfig, nag_cfg):
             os.mkdir(command_dir)
             os.chown(command_dir, cstat.st_uid, cstat.st_gid)
         command_file = os.path.join(command_dir, "graphios_commands.cfg")
-
     cfile = open(command_file, 'a')
     for line in commands:
         cfile.writelines("%s\n" % line)
@@ -83,13 +87,15 @@ def add_perfdata_config(nconfig, nag_cfg):
 
 
 def write_main_config(nconfig, nag_cfg, main_config):
+    """
+    writes the nagios.cfg
+    """
     #now add the main config
     nfile = open(nag_cfg, 'a')
     if (
         "process_performance_data" in nconfig and
         nconfig["process_performance_data"] == "1"
     ):
-
         print("pre-existing perfdata config detected")
         for line in main_config:
             nfile.writelines("# %s\n" % line)
@@ -100,6 +106,9 @@ def write_main_config(nconfig, nag_cfg, main_config):
 
 
 def _post_install():
+    """
+    tries to find the nagios.cfg and insert graphios perf commands/cfg
+    """
     lookin = ['/etc/nagios/', '/opt/nagios/', '/usr/local/nagios',
               '/usr/nagios']
     nag_cfg = find_nagios_cfg(lookin)
@@ -117,6 +126,9 @@ def _post_install():
 
 
 def backup_file(file_name):
+    """
+    backs up the nagios.cfg, incase we break something.
+    """
     my_time = strftime('%d-%m-%y')
     new_file_name = "%s.%s" % (file_name, my_time)
     print("backing up file:%s to %s.%s" % (file_name, new_file_name))
@@ -129,13 +141,16 @@ def backup_file(file_name):
 
 
 class my_install(_install):
+    """
+    installs graphios
+    """
     def run(self):
         _install.run(self)
         self.execute(_post_install, [], msg="Running post install task")
 
 
 setup(name='graphios',
-      version='0.0.2b',
+      version='2.0.0b',
       description='Emit Nagios metrics to Graphite, Statsd, and Librato',
       author='Shawn Sterling',
       author_email='shawn@systemtemplar.org',
