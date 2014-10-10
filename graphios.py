@@ -122,11 +122,18 @@ class GraphiosMetric(object):
             self.PERFDATA is not '' and
             self.HOSTNAME is not ''
         ):
-            if "use_service_desc" in cfg:
-                if self.SERVICEDESC is not '':
+            if "use_service_desc" in cfg and cfg["use_service_desc"] is True:
+                if self.SERVICEDESC != '':
                     self.VALID = True
             else:
-                self.VALID = True
+                # not using service descriptions
+                if (
+                    self.GRAPHITEPREFIX == "" and
+                    self.GRAPHITEPOSTFIX == ""
+                ):
+                    self.VALID = False
+                else:
+                    self.VALID = True
 
 
 def chk_bool(value):
@@ -290,7 +297,7 @@ def get_mobj(nag_array):
     """
     mobj = GraphiosMetric()
     for var in nag_array:
-        (var_name, value) = var.split('::')
+        (var_name, value) = var.split('::', 1)
         value = re.sub("/", cfg["replacement_character"], value)
         if re.search("PERFDATA", var_name):
             mobj.PERFDATA = value
