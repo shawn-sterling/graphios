@@ -350,8 +350,10 @@ def process_spool_dir(directory):
         #process the output from the backends and decide the fate of the file
         for backend in be["essential_backends"]:
             if processed_dict[backend] < mobjs_len:
-                log.critical("keeping %s, insufficent metrics sent from %s" %
-                            (file_dir, backend))
+                log.critical("keeping %s, insufficent metrics sent from %s. \
+                             Should be %s, got %s" % (file_dir, backend,
+                                                      mobjs_len,
+                                                      processed_dict[backend]))
                 all_done = False
         if all_done is True:
             handle_file(file_dir, len(mobjs))
