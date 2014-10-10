@@ -268,7 +268,7 @@ class carbon(object):
             timestamp = m.TIMET
             metric_tuple = (path, (timestamp, value))
             if self.test_mode:
-                print "%s %s %s" % (path, timestamp, value)
+                print "%s %s %s" % (path, value, timestamp)
             pickle_list.append(metric_tuple)
         for pickle_list_chunk in self.chunks(pickle_list,
                                              self.carbon_max_metrics):
@@ -350,8 +350,10 @@ class carbon(object):
                     sock.sendall(message)
             except Exception, ex:
                 self.log.critical("Can't send message to carbon error:%s" % ex)
-            else:
-                ret += 1
+                sock.close()
+                return 0
+            # this only gets returned if nothing failed.
+            return len(metrics)
             sock.close()
         return ret
 
