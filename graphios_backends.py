@@ -78,7 +78,6 @@ class librato(object):
                 self.log.debug("adding librato whitelist pattern %s" % pattern)
                 self.whitelist.append(re.compile(pattern))
 
-
     def build_path(self, vals, m):
         path = ''
         for s in vals:
@@ -91,21 +90,20 @@ class librato(object):
 
     def k_not_in_whitelist(self, k):
         # return True if k isn't whitelisted
-        wl_match = True
+        #wl_match = True
         for pattern in self.whitelist:
             if pattern.search(k) is not None:
                 return False
         return True
 
-
     def add_measure(self, m):
         ts = int(m.TIMET)
         if self.floor_time_secs is not None:
             ts = (ts / self.floor_time_secs) * self.floor_time_secs
-        
+
         source = self.build_path(self.sourcevals, m)
         name = self.build_path(self.namevals, m)
-                
+
         k = "%s\t%s" % (name, source)
 
         #bail if this metric isn't whitelisted
@@ -161,7 +159,7 @@ class librato(object):
             return 0
 
         # Limit our payload sizes
-        max_metrics_payload = 500  # this is never used, delete it?
+        # max_metrics_payload = 500  # this is never used, delete it?
 
         headers = {
             'Content-Type': 'application/json',
@@ -252,6 +250,12 @@ class carbon(object):
         except:
             self.use_service_desc = False
 
+        try:
+            cfg['test_mode']
+            self.test_mode = cfg['test_mode']
+        except:
+            self.test_mode = False
+
     def convert_pickle(self, metrics):
         """
         Converts the metric obj list into a pickle message
@@ -263,6 +267,8 @@ class carbon(object):
             value = m.VALUE
             timestamp = m.TIMET
             metric_tuple = (path, (timestamp, value))
+            if self.test_mode:
+                print "%s %s %s" % (path, timestamp, value)
             pickle_list.append(metric_tuple)
         for pickle_list_chunk in self.chunks(pickle_list,
                                              self.carbon_max_metrics):
@@ -282,16 +288,22 @@ class carbon(object):
         """
         Builds a carbon metric
         """
-        if self.use_service_desc:
-            # we want: prefix.hostname.service_desc.postfix.perfdata
-            service_desc = self.fix_string(m.SERVICEDESC)
-            path = "%s.%s.%s.%s.%s" % (m.GRAPHITEPREFIX, m.HOSTNAME,
-                                       service_desc, m.GRAPHITEPOSTFIX,
-                                       m.LABEL)
-
+        if m.GRAPHITEPREFIX != "":
+            pre = "%s." % m.GRAPHITEPREFIX
         else:
-            path = "%s.%s.%s.%s" % (m.GRAPHITEPREFIX, m.HOSTNAME,
-                                    m.GRAPHITEPOSTFIX, m.LABEL)
+            pre = ""
+        if m.GRAPHITEPOSTFIX != "":
+            post = ".%s" % m.GRAPHITEPOSTFIX
+        else:
+            post = ""
+        if self.use_service_desc:
+            # we want: (prefix.)hostname.service_desc(.postfix).perfdata
+            service_desc = self.fix_string(m.SERVICEDESC)
+            path = "%s%s.%s%s.%s" % (pre, m.HOSTNAME,
+                                     service_desc, post,
+                                     m.LABEL)
+        else:
+            path = "%s%s%s.%s" % (pre, m.HOSTNAME, post, m.LABEL)
         path = re.sub(r"\.$", '', path)  # fix paths that end in dot
         path = re.sub(r"\.\.", '.', path)  # fix paths with double dots
         path = self.fix_string(path)
