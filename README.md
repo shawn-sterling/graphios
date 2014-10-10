@@ -160,9 +160,9 @@ descriptions.
 
 To turn this on, modify the graphios.cfg and change:
 
-use_service_desc = False
+    use_service_desc = False
 to
-use_service_desc = True
+    use_service_desc = True
 
 You can still use the graphite prefix and postfix variables but you don't have
 to.
@@ -229,7 +229,7 @@ Out of the box, it enables the carbon back-end and sends pickled metrics to
 directories, and controls things like log levels, sleep intervals, and of
 course, backends like carbon, statsd, and librato.
 
-The config file is well commented, adding/chaning backends is very simple.
+The config file is well commented, adding/changing backends is very simple.
 
 (2) nagios.cfg
 --------------
@@ -274,8 +274,8 @@ configuration.
 There are 2 commands we setup in the nagios.cfg, which if you used pip or the
 rpm/deb may have already been setup for you. We need:
 
-graphite\_perf\_service
-graphite\_perf\_host
+    graphite\_perf\_service
+    graphite\_perf\_host
 
 Which we now need to define:
 
@@ -283,7 +283,7 @@ I use include dirs, so I make a new file called graphios\_commands.cfg inside
 my include dir. Do that, or add the below commands to one of your existing
 nagios config files.
 
-#### NOTE: Your spool directory may be different, this is setup in step (1) the service_perfdata_file, and host_perfdata_file.
+#### NOTE: Your spool directory may be different, this is setup in step (2) the service_perfdata_file, and host_perfdata_file.
 
 <pre>
 define command {
@@ -348,7 +348,7 @@ chmod 750 /etc/init.d/graphios
 FIXME: Add systemd
 
 
-#### NOTE: You may need to change the location and username that the script runs as. this slightly depending on where you decided to put graphios.py
+#### NOTE: You may need to change the location and username that the script runs as. this varies slightly depending on where you decided to put graphios.py
 
 The lines you will likely have to change:
 <pre>
@@ -372,7 +372,7 @@ _graphiteprefix.hostname._graphitepostfix.perfdata
 
 You do not need to set both graphiteprefix and graphitepostfix. Just one or the
 other will do. If you do not set at least one of them, the data will not be
-sent to graphite at all.
+sent to graphite at all (unless you are using the service descriptions)
 
 Examples:
 
@@ -400,7 +400,7 @@ define service {
 }
 </pre>
 
-Which gives me:
+Which gives us:
 
     monitoring.nagios01.mysql.myhost.threads_connected
 
