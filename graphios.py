@@ -84,7 +84,7 @@ parser.add_option("--log-file", dest="log_file",
                   help="file to log to")
 parser.add_option("--backend", dest="backend", default="stdout",
                   help="sets which storage backend to use")
-parser.add_option("--config", dest="config_file", default="",
+parser.add_option("--config", dest="config", default="",
                   help="set custom config file location")
 
 log = logging.getLogger('log')
