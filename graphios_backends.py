@@ -338,7 +338,7 @@ class carbon(object):
             self.log.debug("Connecting to carbon at %s:%s" %
                           (server, port))
             try:
-                sock.connect((server, port))
+                sock.connect((socket.gethostbyname(server), port))
                 self.log.debug("connected")
             except Exception, ex:
                 self.log.warning("Can't connect to carbon: %s:%s %s" % (
@@ -405,7 +405,7 @@ class statsd(object):
                           (server, port))
             for m in mlist:
                 try:
-                    sock.sendto(m, (server, port))
+                    sock.sendto(m, (socket.gethostbyname(server), port))
                 except Exception, ex:
                     self.log.critical("Can't send metric to statsd error:%s"
                                       % ex)
