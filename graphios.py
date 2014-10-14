@@ -152,7 +152,13 @@ def read_config(config_file):
     reads the config file
     """
     if config_file == '':
-        config_file = "%s/graphios.cfg" % sys.path[0]
+        # check same dir as graphios binary
+        my_file = "%s/graphios.cfg" % sys.path[0]
+        if os.path.isfile(my_file):
+            config_file = my_file
+        else:
+            # check /etc/graphios/graphios.cfg
+            config_file = "/etc/graphios/graphios.cfg"
     config = SafeConfigParser()
     # The logger won't be initialized yet, so we use print_debug
     if os.path.isfile(config_file):
