@@ -17,7 +17,7 @@
 # Check that networking is up.
 [ "$NETWORKING" = "no" ] && exit 0
 
-prog="/usr/bin/graphios"
+prog="/usr/bin/graphios.py"
 # or use the command line options:
 #prog="/usr/bin/graphios --log-file=/dir/mylog.log --spool-directory=/dir/my/sool"
 GRAPHIOS_USER="nagios"
