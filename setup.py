@@ -157,7 +157,7 @@ elif distro in ['centos', 'redhat', 'fedora']:
 # print data_files
 setup(
     name='graphios',
-    version='2.0.0b',
+    version='2.0.0b1',
     description='Emit Nagios metrics to Graphite, Statsd, and Librato',
     author='Shawn Sterling',
     author_email='shawn@systemtemplar.org',
