@@ -141,10 +141,10 @@ distro_ver = int(platform.dist()[1].split('.')[0])
 
 if distro == 'Ubuntu':
     data_files.append(('/etc/init/', ['init/ubuntu/graphios.conf']))
-    data_files.append(('/usr/local/bin/graphios.py', ['graphios.py']))
+    data_files.append(('/usr/local/bin/', ['graphios.py']))
 elif distro == 'debian':
     data_files.append(('/etc/init.d/', ['init/debian/graphios']))
-    data_files.append(('/usr/local/bin/graphios.py', ['graphios.py']))
+    data_files.append(('/usr/local/bin/', ['graphios.py']))
 elif distro in ['centos', 'redhat', 'fedora']:
     data_files.append(('/usr/bin', ['graphios.py']))
     if distro_ver >= 7:
