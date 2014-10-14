@@ -173,5 +173,6 @@ setup(
     ],
     keywords='Nagios metrics graphing visualization',
     long_description='Graphios is a script to send nagios perfdata to various\
-    backends like graphite, statsd, and librato.'
+    backends like graphite, statsd, and librato. \
+    https://github.com/shawn-sterling/graphios'
 )
