@@ -5,6 +5,7 @@ from shutil import Error as FileError
 from shutil import copy
 from time import strftime
 import os
+import platform
 import re
 
 
@@ -40,31 +41,12 @@ def add_perfdata_config(nconfig, nag_cfg):
     """
     adds the graphios perfdata cfg to the nagios.cfg
     """
-    main_config = [
-        "\n",
-        "###### Auto-generated Graphios configs #######",
-        "process_performance_data=1",
-        "service_perfdata_file=/var/spool/nagios/graphios/service-perfdata",
-        "service_perfdata_file_template=DATATYPE::SERVICEPERFDATA\tTIMET::$TIMET$\tHOSTNAME::$HOSTNAME$\tSERVICEDESC::$SERVICEDESC$\tSERVICEPERFDATA::$SERVICEPERFDATA$\tSERVICECHECKCOMMAND::$SERVICECHECKCOMMAND$\tHOSTSTATE::$HOSTSTATE$\tHOSTSTATETYPE::$HOSTSTATETYPE$\tSERVICESTATE::$SERVICESTATE$\tSERVICESTATETYPE::$SERVICESTATETYPE$\tGRAPHITEPREFIX::$_SERVICEGRAPHITEPREFIX$\tGRAPHITEPOSTFIX::$_SERVICEGRAPHITEPOSTFIX$",
-        "service_perfdata_file_mode=a",
-        "service_perfdata_file_processing_interval=15",
-        "service_perfdata_file_processing_command=graphios_perf_service",
-        "host_perfdata_file=/var/spool/nagios/graphios/host-perfdata",
-        "host_perfdata_file_template=DATATYPE::HOSTPERFDATA\tTIMET::$TIMET$\tHOSTNAME::$HOSTNAME$\tHOSTPERFDATA::$HOSTPERFDATA$\tHOSTCHECKCOMMAND::$HOSTCHECKCOMMAND$\tHOSTSTATE::$HOSTSTATE$\tHOSTSTATETYPE::$HOSTSTATETYPE$\tGRAPHITEPREFIX::$_HOSTGRAPHITEPREFIX$\tGRAPHITEPOSTFIX::$_HOSTGRAPHITEPOSTFIX$",
-        "host_perfdata_file_mode=a",
-        "host_perfdata_file_processing_interval=15",
-        "host_perfdata_file_processing_command=graphios_perf_host",
-    ]
-    commands = [
-        "define command {",
-        "    command_name            graphios_perf_host",
-        "    command_line            /bin/mv /var/spool/nagios/graphios/host-perfdata /var/spool/nagios/graphios/host-perfdata.$TIMET$",
-        "}",
-        "define command {",
-        "    command_name            graphios_perf_service",
-        "    command_line            /bin/mv /var/spool/nagios/graphios/service-perfdata /var/spool/nagios/graphios/service-perfdata.$TIMET$",
-        "}"
-    ]
+    with open('nagios/nagios_perfdata.cfg') as f:
+        main_config = f.read().splitlines()
+
+    with open('nagios/graphios_commands.cfg') as f:
+        commands = f.read().splitlines()
+
     #add the graphios commands
     cstat = os.stat(nag_cfg)
     print("nagios uid: %s gid: %s" % (cstat.st_uid, cstat.st_gid))
@@ -131,7 +113,7 @@ def backup_file(file_name):
     """
     my_time = strftime('%d-%m-%y')
     new_file_name = "%s.%s" % (file_name, my_time)
-    print("backing up file:%s to %s.%s" % (file_name, new_file_name))
+    print("backing up file:%s to %s" % (file_name, new_file_name))
     try:
         copy(file_name, new_file_name)
         return True
@@ -148,25 +130,48 @@ class my_install(_install):
         _install.run(self)
         self.execute(_post_install, [], msg="Running post install task")
 
+data_files = [
+    (('/etc/graphios'), ["graphios.cfg"])
+]
 
-setup(name='graphios',
-      version='2.0.0b',
-      description='Emit Nagios metrics to Graphite, Statsd, and Librato',
-      author='Shawn Sterling',
-      author_email='shawn@systemtemplar.org',
-      url='https://github.com/shawn-sterling/graphios',
-      license='GPL v2',
-      scripts=['graphios.py'],
-      data_files=[(os.path.join('/', 'etc', 'graphios'), ["graphios.cfg"]),
-          (os.path.join('/', 'etc', 'graphios', 'init'), ["graphios.conf",
-          "graphios.init"])
-      ],
-      py_modules=['graphios_backends'],
-      cmdclass={'install': my_install},
-      classifiers=[
-          'Development Status :: 4 - Beta',
-          'Intended Audience :: Operations',
-          'Programming Language :: Python :: 2.7',
-      ],
-      keywords='Nagios metrics graphing visualization',
-      )
+distro = platform.dist()[0]
+distro_ver = int(platform.dist()[1].split('.')[0])
+
+# print "using %s %s" % (distro, distro_ver)
+
+if distro == 'Ubuntu':
+    data_files.append(('/etc/init/', ['init/ubuntu/graphios.conf']))
+    data_files.append(('/usr/local/bin/graphios.py', ['graphios.py']))
+elif distro == 'debian':
+    data_files.append(('/etc/init.d/', ['init/debian/graphios.init']))
+    data_files.append(('/usr/local/bin/graphios.py', ['graphios.py']))
+elif distro in ['centos', 'redhat', 'fedora']:
+    data_files.append(('/usr/bin', ['graphios.py']))
+    if distro_ver >= 7:
+        data_files.append(('/usr/lib/systemd/system',
+                          ['init/systemd/graphios.service']))
+    elif distro_ver < 7:
+        data_files.append(('/etc/rc.d/init.d', ['init/rhel/graphios.init']))
+
+# print data_files
+setup(
+    name='graphios',
+    version='2.0.0b',
+    description='Emit Nagios metrics to Graphite, Statsd, and Librato',
+    author='Shawn Sterling',
+    author_email='shawn@systemtemplar.org',
+    url='https://github.com/shawn-sterling/graphios',
+    license='GPL v2',
+    scripts=['graphios.py'],
+    data_files=data_files,
+    py_modules=['graphios_backends'],
+    cmdclass={'install': my_install},
+    classifiers=[
+        'Development Status :: 4 - Beta',
+        'Intended Audience :: Operations',
+        'Programming Language :: Python :: 2.7',
+    ],
+    keywords='Nagios metrics graphing visualization',
+    long_description='Graphios is a script to send nagios perfdata to various\
+    backends like graphite, statsd, and librato.'
+)
