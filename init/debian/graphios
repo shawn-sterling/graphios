@@ -15,7 +15,7 @@
 # Source function library.
 . /lib/lsb/init-functions
 
-prog="/usr/local/bin/graphios"
+prog="/usr/local/bin/graphios.py"
 # or use the command line options:
 #prog="/opt/nagios/bin/graphios.py --log-file=/dir/mylog.log --spool-directory=/dir/my/sool"
 GRAPHIOS_USER="nagios"
