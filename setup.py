@@ -146,7 +146,6 @@ if distro == 'Ubuntu':
 elif distro == 'debian':
     data_files.append(('/etc/init.d/', ['init/debian/graphios']))
     data_files.append(('/usr/local/bin/', ['graphios.py']))
-    scripts.append("graphios")
 elif distro in ['centos', 'redhat', 'fedora']:
     data_files.append(('/usr/bin', ['graphios.py']))
     if distro_ver >= 7:
@@ -154,7 +153,6 @@ elif distro in ['centos', 'redhat', 'fedora']:
                           ['init/systemd/graphios.service']))
     elif distro_ver < 7:
         data_files.append(('/etc/rc.d/init.d', ['init/rhel/graphios']))
-        scripts.append("graphios")
 
 # print data_files
 setup(
@@ -165,7 +163,7 @@ setup(
     author_email='shawn@systemtemplar.org',
     url='https://github.com/shawn-sterling/graphios',
     license='GPL v2',
-    scripts=scripts,
+    scripts=['graphios.py'],
     data_files=data_files,
     py_modules=['graphios_backends'],
     cmdclass={'install': my_install},
