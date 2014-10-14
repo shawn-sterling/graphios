@@ -1,0 +1,69 @@
+#! /bin/bash
+#
+# graphios      start the graphios script
+#
+#
+# chkconfig: 345 99 01
+# description: graphios nagios -> graphite script
+#
+# File : graphios
+
+# Source function library.
+. /etc/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "$NETWORKING" = "no" ] && exit 0
+
+prog="/usr/bin/graphios"
+# or use the command line options:
+#prog="/usr/bin/graphios --log-file=/dir/mylog.log --spool-directory=/dir/my/sool"
+GRAPHIOS_USER="nagios"
+RETVAL=0
+
+start () {
+        echo -n "Starting $prog"
+        /usr/bin/sudo -u $GRAPHIOS_USER  "$prog" &
+        RETVAL=$?
+        [ $RETVAL -eq 0 ] && success || failure
+        echo
+}
+
+stop () {
+        echo -n "Stopping $prog"
+        killproc graphios.py
+        RETVAL=$?
+        [ $RETVAL -eq 0 ] && success || failure
+        echo
+}
+
+restart () {
+        stop
+        start
+}
+
+
+# See how we are called.
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  restart|reload)
+        restart
+        ;;
+  status)
+        status $prog
+        RETVAL=$?
+        ;;
+  *)
+        echo "Usage: service graphios {start|stop|restart|reload}"
+        RETVAL=2
+        ;;
+esac
+
+exit $RETVAL

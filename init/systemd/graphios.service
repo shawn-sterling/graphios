@@ -1,0 +1,9 @@
+[Unit]
+Description=graphios - a script to emit nagios perfdata to various backends
+
+[Service]
+ExecStart=/usr/bin/graphios
+restart=on-abort
+
+[Install]
+WantedBy=multi-user.target

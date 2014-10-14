@@ -1,0 +1,11 @@
+# add symlink
+ln -s /usr/bin/graphios.py /usr/bin/graphios
+
+# add graphios service
+if [ ! -d /etc/systemd ]; then
+    # we are running init
+    if ! chkconfig --add graphios; then
+        logger -p user.err -s -t %name -- "Error adding graphios service."
+        exit 1
+    fi
+fi
