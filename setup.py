@@ -169,7 +169,7 @@ setup(
     cmdclass={'install': my_install},
     classifiers=[
         'Development Status :: 4 - Beta',
-        'Intended Audience :: Operations',
+        'Intended Audience :: System Administrators',
         'Programming Language :: Python :: 2.7',
     ],
     keywords='Nagios metrics graphing visualization',
