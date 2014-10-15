@@ -135,7 +135,8 @@ You should think carefully about how you name your metrics, because later on,
 these names will enable you to easily combine metrics (like load1) across
 various sources (like all webservers).
 
-# A few words on Naming things for Librato
+A few words on Naming things for Librato
+----------------------------------------
 
 The default configuration that works for Graphite also does what you'd expect
 for Librato, so if you're just getting started, and you want to check out
@@ -182,8 +183,7 @@ to
 You can still use the graphite prefix and postfix variables but you don't have
 to.
 
-Big Fat Warning
----------------
+# Big Fat Warning
 
 Graphios assumes your checks are using the same unit of measurement. Most
 plugins support this, some do not. check\_icmp) always reports in ms for
@@ -203,34 +203,38 @@ There are now a few ways to get graphios installed.
 
 1. Use pypi
 
-    pip install graphios
+    `pip install graphios
 
     NOTE: This will attempt to find your nagios.cfg and add the configuration
     steps 1 and 2 for you (Don't worry we back up the file before touching it)
 
 2. Clone it yourself
 
+```
     git clone https://github.com/shawn-sterling/graphios.git
     cd graphios
     cp graphios.py /my/favorite/directory
     cp graphios.cfg /my/secondfavorite/directory
+```
 
 Then:
 
   1. Python setup
 
-    python setup.cfg install
+    `python setup.cfg install
 
   2. Create RPM
 
-    python setup.cfg bdist_rpm
+    `python setup.cfg bdist_rpm
 
     NOTE: The rpm will be in dist/
 
   3. Copy the files where you want them to be
 
+```
     cp graphios*.py /my/dir
     cp graphios.cfg /my/dir
+```
 
     There are various init files in the init dir, depending on what OS you
     are running.
