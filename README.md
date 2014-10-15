@@ -203,8 +203,9 @@ There are now a few ways to get graphios installed.
 
 1. Use pypi
 
-    `pip install graphios
-
+```
+    pip install graphios
+```
     NOTE: This will attempt to find your nagios.cfg and add the configuration
     steps 1 and 2 for you (Don't worry we back up the file before touching it)
 
@@ -213,21 +214,22 @@ There are now a few ways to get graphios installed.
 ```
     git clone https://github.com/shawn-sterling/graphios.git
     cd graphios
-    cp graphios.py /my/favorite/directory
-    cp graphios.cfg /my/secondfavorite/directory
 ```
 
 Then:
 
   1. Python setup
 
-    `python setup.cfg install
+```
+    python setup.cfg install
+```
 
-  2. Create RPM
+  2. Create + Install RPM
 
-    `python setup.cfg bdist_rpm
-
-    NOTE: The rpm will be in dist/
+```
+    python setup.cfg bdist_rpm
+    yum localinstall bdist/graphios-$version.rpm
+```
 
   3. Copy the files where you want them to be
 
@@ -235,9 +237,6 @@ Then:
     cp graphios*.py /my/dir
     cp graphios.cfg /my/dir
 ```
-
-    There are various init files in the init dir, depending on what OS you
-    are running.
 
 # Configuration
 
