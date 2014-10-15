@@ -161,7 +161,7 @@ setup(
     author_email='shawn@systemtemplar.org',
     url='https://github.com/shawn-sterling/graphios',
     license='GPL v2',
-    scripts=['graphios.py', 'init/debian/graphios', 'init/rhel/graphios'],
+    scripts=['graphios.py'],
     data_files=data_files,
     py_modules=['graphios_backends'],
     cmdclass={'install': my_install},
