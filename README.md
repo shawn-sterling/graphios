@@ -201,7 +201,7 @@ installation for a couple years.
 
 There are now a few ways to get graphios installed.
 
-1. Use pypi
+1 - Use pypi
 
 ```
     pip install graphios
@@ -218,7 +218,7 @@ There are now a few ways to get graphios installed.
     pip install --pre graphios
 ```
 
-2. Clone it yourself
+2 - Clone it yourself
 
 ```
     git clone https://github.com/shawn-sterling/graphios.git
@@ -227,20 +227,20 @@ There are now a few ways to get graphios installed.
 
 Then:
 
-  1. Python setup
+  1 - Python setup
 
 ```
     python setup.cfg install
 ```
 
-  2. Create + Install RPM
+  2 - Create + Install RPM
 
 ```
     python setup.cfg bdist_rpm
     yum localinstall bdist/graphios-$version.rpm
 ```
 
-  3. Copy the files where you want them to be
+  3 - Copy the files where you want them to be
 
 ```
     cp graphios*.py /my/dir
