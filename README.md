@@ -1,3 +1,17 @@
+*Oct 15, 2014*
+
+New graphios 2.0!
+
+What's new?
+* Support for multiple backends (graphite, statsd, librato) (and multiples of
+  each backend if you want)
+* Support for using your service descriptions instead of custom variables
+* Install options (pip, setup.py, rpms)
+* Bugfixes
+  * mulitple perfdata in 1 line sometimes did weird things
+  * quotes in your labels/metrics were sometimes in carbon
+  * labels with multiple '::' could mess up
+
 # Introduction
 
 Graphios is a script to emit nagios perfdata to various upstream metrics
@@ -8,9 +22,10 @@ of supported upstream metrics systems simultaenously.
 
 # Requirements
 
-* A working nagios / icinga server
+* A working nagios / icinga / naemon server
 * A functional carbon or statsd daemon, and/or Librato credentials
-* Python 2.4 or later
+* Python 2.7 or later (Is anyone still using 2.4? Likely very little work to
+make this work under 2.4 again if so. Let me know)
 
 # License
 
@@ -24,14 +39,14 @@ to store each metric hierarcicly, so it can be easily located later.
 
 Graphios creates these metric names one of two ways.
 
-1 - by reading a pair of custom variables that
+1. by reading a pair of custom variables that
 you configure for services and hosts called \_graphiteprefix and
 \_graphitepostfix.  Together, these custom variables enable you to control the
 metric name that gets sent to whatever back-end metrics system you're using.
 You don't have to set them both, but things will certainly be less confusing
 for you if you set at least one or the other.
 
-2 - by using your service description in the format:
+2. by using your service description in the format:
 
 \_graphiteprefix.hostname.service-description.\_graphitepostfix.perfdata
 
@@ -150,8 +165,8 @@ want. But if you're a 1%'er you can influence this behavior by modifying the
 Automatic names
 ---------------
 
-UPDATED: Graphios now supports automatic names, because custom variables are
-hard. :)
+Version 2.0: Graphios now supports automatic names, because custom variables
+are hard. :)
 
 This is an all or nothing setting, meaning if you turn this on all services
 will now send to graphios (instead of just the ones with the prefix and postfix
@@ -186,27 +201,39 @@ installation for a couple years.
 
 There are now a few ways to get graphios installed.
 
-1) Use pypi
+1. Use pypi
 
     pip install graphios
 
     NOTE: This will attempt to find your nagios.cfg and add the configuration
     steps 1 and 2 for you (Don't worry we back up the file before touching it)
 
-2) Grab the spec file / deb file and build and install
-
-3) Clone it yourself
+2. Clone it yourself
 
     git clone https://github.com/shawn-sterling/graphios.git
     cd graphios
     cp graphios.py /my/favorite/directory
     cp graphios.cfg /my/secondfavorite/directory
 
-    The pip/rpm/deb installs put things like this:
-    /etc/graphios/graphios.cfg
-    /usr/local/bin/graphios.py
-    FIXME: finish this up
+Then:
 
+  1. Python setup
+
+    python setup.cfg install
+
+  2. Create RPM
+
+    python setup.cfg bdist_rpm
+
+    NOTE: The rpm will be in dist/
+
+  3. Copy the files where you want them to be
+
+    cp graphios*.py /my/dir
+    cp graphios.cfg /my/dir
+
+    There are various init files in the init dir, depending on what OS you
+    are running.
 
 # Configuration
 
@@ -219,10 +246,11 @@ Steps:
 (1) graphios.cfg
 ----------------
 
-Your graphios.cfg can live anywhere you want, you just need to modify your
-init script to match. If no config is found it will use the some directory
-as the graphios.py is in. The pip installer/rpm/deb will put it in
-/etc/graphios/graphios.cfg
+The default location for graphios.cfg is in /etc/graphios/graphios.cfg, it
+also checks the same directory as the graphios.py is.
+
+Your graphios.cfg can live anywhere you want, but if it's not in the above
+locations you will need to modify your init script to match.
 
 Out of the box, it enables the carbon back-end and sends pickled metrics to
 127.0.0.1:2004.  It also specifies the location of the graphios log and spool
@@ -235,8 +263,8 @@ The config file is well commented, adding/changing backends is very simple.
 --------------
 
 Your nagios.cfg is going to need to modified to send the graphite data to the
-perfdata files. If you have installed with pip or the rpm/deb this may have
-already been done for you.
+perfdata files. Depending on how you installed graphios this step may have been
+done for you.
 
 The following needs to be put into your nagios.cfg
 <pre>
@@ -307,14 +335,14 @@ We recommend running graphios.py from the console for the first time, this will
 make sure things are sending the way you think they are. A good example would
 be:
 
-#FIXME
-./graphios.py --spool-directory /var/spool/nagios/graphios \
---log-file /tmp/graphios.log \
---backend stdout
+    ./graphios.py --spool-directory /var/spool/nagios/graphios \
+    --log-file /tmp/graphios.log \
+    --backend carbon \
+    --test
 
 and if there are problems add
 
---verbose
+    --verbose
 
 Other command line options:
 <pre>
@@ -330,6 +358,7 @@ Options:
   --log-file=LOG_FILE   file to log to
   --backend=BACKEND     sets which storage backend to use
   --config=CONFIG_FILE  set custom config file location
+  --test                enables test mode
 </pre>
 
 
@@ -338,15 +367,21 @@ Options:
 
 Remember: *screen* is not a daemon management tool.
 
-If you installed with pip/rpm/deb this part is done for you!
+If you installed with pip/setup.py/rpm this part should be done for you!
 
-<pre>
-cp graphios.init /etc/init.d/graphios
-chown root:root /etc/init.d/graphios
-chmod 750 /etc/init.d/graphios
-</pre>
-FIXME: Add systemd
+Take a look in the init/ directory and find your OS of choice.
 
+For debian/ubuntu:
+    cp init/debian/graphios /etc/init.d/
+    cp init/debian/graphios.conf /etc/init
+    chmod 755 /etc/init.d/graphios
+
+For rhel/centos/sl < 6:
+    cp init/rhel/graphios /etc/init.d
+    chmod 755 /etc/init.d/graphios
+
+for systems with systemd:
+    cp init/systemd/graphios.service /usr/lib/systemd/system
 
 #### NOTE: You may need to change the location and username that the script runs as. this varies slightly depending on where you decided to put graphios.py
 
@@ -362,7 +397,8 @@ GRAPHIOS_USER="nagios"
 ---------------------------------
 
 Once you have done the above you need to add a custom variable to the hosts and
-services that you want sent to graphite.
+services that you want sent to graphite. (Unless you are using service
+descriptions, in which case you can skip this step)
 
 The format that will be sent to carbon is:
 
@@ -407,6 +443,21 @@ Which gives us:
 See the Documentation (above) for more explanation on how this works.
 
 
+# Upgrading
+
+To upgrade from the old version of graphios, you need to:
+
+1. Look at the things you changed in the old graphios.py (carbon_server,
+spool_directory, log_file location, etc)
+2. Edit your new graphios.cfg and put those options there instead. You should
+NOT have to modify the new graphios.py.
+
+*Why Upgrade?*
+
+The new version has fixed some bugs, and has cooler optional backends; and
+support for multiple backends, including multiple carbon servers. I don't think
+any major performance increases have been made, so if it isn't broken don't fix
+it.
 
 # PNP4Nagios Notes:
 
