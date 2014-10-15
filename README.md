@@ -209,6 +209,15 @@ There are now a few ways to get graphios installed.
     NOTE: This will attempt to find your nagios.cfg and add the configuration
     steps 1 and 2 for you (Don't worry we back up the file before touching it)
 
+    NOTE2: If you get the error:
+    Could not find a version that satisfies the requirement graphios
+    This is a because graphios is still in the beta category. I will remove
+    this in a few weeks, so until then you need to:
+
+```
+    pip install --pre graphios
+```
+
 2. Clone it yourself
 
 ```
