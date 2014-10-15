@@ -1,7 +1,5 @@
 include graphios.py
 include graphios_backends.py
 include graphios.cfg
-include init/systemd/graphios.service
-include init/rhel/graphios
-include init/debian/graphios
-include init/ubuntu/graphios.conf
+graft   init
+graft   nagios
