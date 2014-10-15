@@ -86,6 +86,8 @@ parser.add_option("--backend", dest="backend", default="stdout",
                   help="sets which storage backend to use")
 parser.add_option("--config", dest="config", default="",
                   help="set custom config file location")
+parser.add_option("--test", dest="test", default="",
+                  help="Turns on test mode, which won't send to backends")
 
 log = logging.getLogger('log')
 
@@ -226,6 +228,8 @@ def verify_options(opts):
     cfg["log_max_size"] = 25165824         # 24 MB
     if opts.verbose:
         cfg["debug"] = True
+    if opts.test:
+        cfg["test_mode"] = True
     cfg["spool_directory"] = opts.spool_directory
     spool_directory = opts.spool_directory
     cfg["backend"] = opts.backend
