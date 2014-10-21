@@ -586,6 +586,24 @@ define command{
 }
 </pre>
 
+(4) Optional: If you don't want PNP4NAGIOS to ever see perfdata for checks that Graphios is exporting data for, you can modify the ~/etc/nagios/conf.d/pnp4nagios.cfg command lines to remove data with a grep. In the below case, we grep out a specific string to remove perfdata. This involves a little move moving around of files, but nothing excessive.
+
+<pre>
+define command{
+       command_name    omd-process-service-perfdata-file
+       #command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/service-perfdata /omd/sites/ssec/var/pnp4nagios/spool/service-perfdata.$TIMET$
+###GRAPHITE SETTING### ADDED REDIRECTION TO REMOVE exportstats
+       command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/service-perfdata /omd/sites/ssec/var/pnp4nagios/service-perfdata.$TIMET$ && /bin/cp /omd/sites/ssec/var/pnp4nagios/service-perfdata.$TIMET$ /omd/sites/ssec/var/graphios/spool/ && grep -v GRAPHITEPREFIX\:\:lustre /omd/sites/ssec/var/pnp4nagios/service-perfdata.$TIMET$ > /omd/sites/ssec/var/pnp4nagios/spool/service-perfdata.$TIMET$ && /bin/rm /omd/sites/ssec/var/pnp4nagios/service-perfdata.*
+
+}
+
+define command{
+       command_name    omd-process-host-perfdata-file
+       #command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/host-perfdata /omd/sites/ssec/var/pnp4nagios/spool/host-perfdata.$TIMET$
+####GRAPHITE SETTING### ADDED REDIRECTION TO REMOVE exportstats
+       command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/host-perfdata /omd/sites/ssec/var/pnp4nagios/host-perfdata.$TIMET$ && /bin/cp /omd/sites/ssec/var/pnp4nagios/host-perfdata.$TIMET$ /omd/sites/ssec/var/graphios/spool/ && grep -v GRAPHITEPREFIX\:\:lustre /omd/sites/ssec/var/pnp4nagios/host-perfdata.$TIMET$ > /omd/sites/ssec/var/pnp4nagios/spool/host-perfdata.$TIMET$ && /bin/rm /omd/sites/ssec/var/pnp4nagios/host-perfdata.*
+</pre>
+
 * UPDATE - OMD 5.6 was released on 10/02/2012
 * The only changes that you would need to make to 5.6 is add the changes in step 2 (omd-process-host/service-perfdata-file commands)
 
