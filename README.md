@@ -541,7 +541,7 @@ You should now be able to skip steps 2 and 3 on the configuration instructions.
 # OMD (Open Monitoring Distribution) Notes:
 
 * OMD 1.2x Setup Guide - Nightly OMD Build
-* See below for earlier 
+* Look at the following set of steps for earlier versions.
 * All steps below are assumed to be carried out under your OMD site's user.
 
 (1) Change the NPCD Setup for PNP4NAGIOS to Bulk Mode with NPCD instead of NPCDMOD by changing the symlink in ~/etc/nagios/nagios.d/pnp4nagios.cfg to point at ../../pnp4nagios/nagios_npcd.cfg instead of ../../pnp4nagios/nagios_npcdmod.cfg.
