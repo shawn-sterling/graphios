@@ -584,6 +584,7 @@ define command{
        command_name    omd-process-host-perfdata-file
        command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ && cp /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
 }
+</pre>
 
 * UPDATE - OMD 5.6 was released on 10/02/2012
 * The only changes that you would need to make to 5.6 is add the changes in step 2 (omd-process-host/service-perfdata-file commands)
