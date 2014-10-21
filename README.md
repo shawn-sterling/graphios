@@ -541,6 +541,7 @@ You should now be able to skip steps 2 and 3 on the configuration instructions.
 # OMD (Open Monitoring Distribution) Notes:
 
 * OMD 1.2x Setup Guide - Nightly OMD Build
+* See below for earlier 
 * All steps below are assumed to be carried out under your OMD site's user.
 
 (1) Change the NPCD Setup for PNP4NAGIOS to Bulk Mode with NPCD instead of NPCDMOD by changing the symlink in ~/etc/nagios/nagios.d/pnp4nagios.cfg to point at ../../pnp4nagios/nagios_npcd.cfg instead of ../../pnp4nagios/nagios_npcdmod.cfg.
@@ -586,7 +587,7 @@ define command{
 }
 </pre>
 
-(4) Optional: If you don't want PNP4NAGIOS to ever see perfdata for checks that Graphios is exporting data for, you can modify the ~/etc/nagios/conf.d/pnp4nagios.cfg command lines to remove data with a grep. In the below case, we grep out a specific string to remove perfdata. This involves a little move moving around of files, but nothing excessive.
+(4) Optional: If you don't want PNP4NAGIOS to ever see perfdata for checks that Graphios is exporting data for, you can modify the ~/etc/nagios/conf.d/pnp4nagios.cfg command lines to remove data with a grep. In the below case, we grep out a specific string (GRAPHITEPREFIX\:\:lustre) to remove perfdata containing that string. This involves a little move moving around of files, but nothing excessive and stops PNP4NAGIOS from trying to genearte RRD files with that data.
 
 <pre>
 define command{
