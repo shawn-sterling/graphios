@@ -225,7 +225,7 @@ There are now a few ways to get graphios installed.
     cd graphios
 ```
 
-Then:
+Then do one of the following three things (depending what you like best):
 
   1 - Python setup
 
