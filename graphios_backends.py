@@ -256,6 +256,12 @@ class carbon(object):
         except:
             self.test_mode = False
 
+        try:
+            cfg['replace_hostname']
+            self.replace_hostname = cfg['replace_hostname']
+        except:
+            self.replace_hostname = True
+
     def convert_pickle(self, metrics):
         """
         Converts the metric obj list into a pickle message
@@ -296,14 +302,17 @@ class carbon(object):
             post = ".%s" % m.GRAPHITEPOSTFIX
         else:
             post = ""
+        if self.replace_hostname:
+            hostname = m.HOSTNAME.replace('.', self.replacement_character)
+        else:
+            hostname = m.HOSTNAME
         if self.use_service_desc:
             # we want: (prefix.)hostname.service_desc(.postfix).perfdata
             service_desc = self.fix_string(m.SERVICEDESC)
-            path = "%s%s.%s%s.%s" % (pre, m.HOSTNAME,
-                                     service_desc, post,
+            path = "%s%s.%s%s.%s" % (pre, hostname, service_desc, post,
                                      m.LABEL)
         else:
-            path = "%s%s%s.%s" % (pre, m.HOSTNAME, post, m.LABEL)
+            path = "%s%s%s.%s" % (pre, hostname, post, m.LABEL)
         path = re.sub(r"\.$", '', path)  # fix paths that end in dot
         path = re.sub(r"\.\.", '.', path)  # fix paths with double dots
         path = self.fix_string(path)
@@ -314,7 +323,7 @@ class carbon(object):
         takes a string and replaces whitespace and invalid carbon chars with
         the global replacement_character
         """
-        invalid_chars = '~!@#$:;%^*()+={}[]|\/<>'
+        invalid_chars = '~!$:;%^*()+={}[]|\/<>'
         my_string = re.sub("\s", self.replacement_character, my_string)
         for char in invalid_chars:
             my_string = my_string.replace(char, self.replacement_character)
