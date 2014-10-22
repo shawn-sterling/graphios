@@ -540,6 +540,71 @@ You should now be able to skip steps 2 and 3 on the configuration instructions.
 
 # OMD (Open Monitoring Distribution) Notes:
 
+* OMD 1.2x Setup Guide - Nightly OMD Build
+* Look at the following set of steps for earlier versions.
+* All steps below are assumed to be carried out under your OMD site's user.
+
+(1) Change the NPCD Setup for PNP4NAGIOS to Bulk Mode with NPCD instead of NPCDMOD by changing the symlink in ~/etc/nagios/nagios.d/pnp4nagios.cfg to point at ../../pnp4nagios/nagios_npcd.cfg instead of ../../pnp4nagios/nagios_npcdmod.cfg.
+
+(2) Update ~/etc/pnp4nagios/nagios_npcd.cfg 
+
+<pre>
+#
+# PNP4Nagios Bulk Mode with npcd
+#
+process_performance_data=1
+
+#
+# service performance data
+#
+service_perfdata_file=/omd/sites/SITENAME/var/pnp4nagios/service-perfdata
+service_perfdata_file_template=DATATYPE::SERVICEPERFDATA\tTIMET::$TIMET$\tHOSTNAME::$HOSTNAME$\tSERVICEDESC::$SERVICEDESC$\tSERVICEPERFDATA::$SERVICEPERFDATA$\tSERVICECHECKCOMMAND::$SERVICECHECKCOMMAND$\tHOSTSTATE::$HOSTSTATE$\tHOSTSTATETYPE::$HOSTSTATETYPE$\tSERVICESTATE::$SERVICESTATE$\tSERVICESTATETYPE::$SERVICESTATETYPE$\tGRAPHITEPREFIX::$_SERVICEGRAPHITEPREFIX$\tGRAPHITEPOSTFIX::$_SERVICEGRAPHITEPOSTFIX$
+service_perfdata_file_mode=a
+service_perfdata_file_processing_interval=15
+service_perfdata_file_processing_command=omd-process-service-perfdata-file
+
+#
+# host performance data
+#
+host_perfdata_file=/omd/sites/SITENAME/var/pnp4nagios/host-perfdata
+host_perfdata_file_template=DATATYPE::HOSTPERFDATA\tTIMET::$TIMET$\tHOSTNAME::$HOSTNAME$\tHOSTPERFDATA::$HOSTPERFDATA$\tHOSTCHECKCOMMAND::$HOSTCHECKCOMMAND$\tHOSTSTATE::$HOSTSTATE$\tHOSTSTATETYPE::$HOSTSTATETYPE$\tGRAPHITEPREFIX::$_HOSTGRAPHITEPREFIX$\tGRAPHITEPOSTFIX::$_HOSTGRAPHITEPOSTFIX$
+host_perfdata_file_mode=a
+host_perfdata_file_processing_interval=15
+host_perfdata_file_processing_command=omd-process-host-perfdata-file
+</pre>
+
+(3) Update etc/nagios/conf.d/pnp4nagios.cfg
+
+<pre>
+define command{
+       command_name    omd-process-service-perfdata-file
+       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/service-perfdata /omd/sites/prod/var/pnp4nagios/spool/service-perfdata.$TIMET$ && cp /omd/sites/prod/var/pnp4nagios/spool/service-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
+}
+
+define command{
+       command_name    omd-process-host-perfdata-file
+       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ && cp /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
+}
+</pre>
+
+(4) Optional: If you don't want PNP4NAGIOS to ever see perfdata for checks that Graphios is exporting data for, you can modify the ~/etc/nagios/conf.d/pnp4nagios.cfg command lines to remove data with a grep. In the below case, we grep out a specific string (GRAPHITEPREFIX\:\:lustre) to remove perfdata containing that string. This involves a little move moving around of files, but nothing excessive and stops PNP4NAGIOS from trying to genearte RRD files with that data.
+
+<pre>
+define command{
+       command_name    omd-process-service-perfdata-file
+       #command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/service-perfdata /omd/sites/ssec/var/pnp4nagios/spool/service-perfdata.$TIMET$
+###GRAPHITE SETTING### ADDED REDIRECTION TO REMOVE exportstats
+       command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/service-perfdata /omd/sites/ssec/var/pnp4nagios/service-perfdata.$TIMET$ && /bin/cp /omd/sites/ssec/var/pnp4nagios/service-perfdata.$TIMET$ /omd/sites/ssec/var/graphios/spool/ && grep -v GRAPHITEPREFIX\:\:lustre /omd/sites/ssec/var/pnp4nagios/service-perfdata.$TIMET$ > /omd/sites/ssec/var/pnp4nagios/spool/service-perfdata.$TIMET$ && /bin/rm /omd/sites/ssec/var/pnp4nagios/service-perfdata.*
+
+}
+
+define command{
+       command_name    omd-process-host-perfdata-file
+       #command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/host-perfdata /omd/sites/ssec/var/pnp4nagios/spool/host-perfdata.$TIMET$
+####GRAPHITE SETTING### ADDED REDIRECTION TO REMOVE exportstats
+       command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/host-perfdata /omd/sites/ssec/var/pnp4nagios/host-perfdata.$TIMET$ && /bin/cp /omd/sites/ssec/var/pnp4nagios/host-perfdata.$TIMET$ /omd/sites/ssec/var/graphios/spool/ && grep -v GRAPHITEPREFIX\:\:lustre /omd/sites/ssec/var/pnp4nagios/host-perfdata.$TIMET$ > /omd/sites/ssec/var/pnp4nagios/spool/host-perfdata.$TIMET$ && /bin/rm /omd/sites/ssec/var/pnp4nagios/host-perfdata.*
+</pre>
+
 * UPDATE - OMD 5.6 was released on 10/02/2012
 * The only changes that you would need to make to 5.6 is add the changes in step 2 (omd-process-host/service-perfdata-file commands)
 
