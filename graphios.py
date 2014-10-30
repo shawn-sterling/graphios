@@ -354,8 +354,6 @@ def process_spool_dir(directory):
         file_dir = os.path.join(directory, perfdata_file)
         if check_skip_file(perfdata_file, file_dir):
             continue
-        if os.path.isdir(file_dir)
-            continue
         num_files += 1
         mobjs = process_log(file_dir)
         mobjs_len = len(mobjs)
@@ -389,6 +387,8 @@ def check_skip_file(file_name, file_dir):
     if os.stat(file_dir)[6] == 0:
         # file was 0 bytes
         handle_file(file_dir, 0)
+        return True
+    if os.path.isdir(file_dir):
         return True
     return False
 
