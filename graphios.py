@@ -388,6 +388,8 @@ def check_skip_file(file_name, file_dir):
         # file was 0 bytes
         handle_file(file_dir, 0)
         return True
+    if os.path.isdir(file_dir):
+        return True
     return False
 
 
