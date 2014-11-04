@@ -86,8 +86,16 @@ parser.add_option("--backend", dest="backend", default="stdout",
                   help="sets which storage backend to use")
 parser.add_option("--config", dest="config", default="",
                   help="set custom config file location")
-parser.add_option("--test", dest="test", default="",
+parser.add_option("--test", action="store_true", dest="test", default="",
                   help="Turns on test mode, which won't send to backends")
+parser.add_option("--replace_char", dest="replace_char", default="_",
+                  help="Replacement Character (default '_'")
+parser.add_option("--sleep_time", dest="sleep_time", default=15,
+                  help="How much time to sleep between checks")
+parser.add_option("--sleep_max", dest="sleep_max", default=480,
+                  help="Max time to sleep between runs")
+parser.add_option("--server", dest="server", default="",
+                  help="Server address (for backend)")
 
 log = logging.getLogger('log')
 
@@ -220,19 +228,49 @@ def verify_options(opts):
     global spool_directory
     # because these have defaults in the parser section we know they will be
     # set. So we don't have to do a bunch of ifs.
-    if cfg["log_file"] == "''":
-        cfg["log_file"] = "%s/graphios.log" % sys.path[0]
-    else:
-        cfg["log_file"] = opts.log_file
+    if "log_file" in cfg:
+        if cfg["log_file"] == "''":
+            cfg["log_file"] = "%s/graphios.log" % sys.path[0]
+        else:
+            cfg["log_file"] = opts.log_file
     cfg["log_file"] = opts.log_file
     cfg["log_max_size"] = 25165824         # 24 MB
     if opts.verbose:
         cfg["debug"] = True
+        cfg["log_level"] = "logging.DEBUG"
+    else:
+        cfg["debug"] = False
+        cfg["log_level"] = "logging.INFO"
     if opts.test:
         cfg["test_mode"] = True
+    else:
+        cfg["test_mode"] = False
+    cfg["replacement_character"] = opts.replace_char
     cfg["spool_directory"] = opts.spool_directory
+    cfg["sleep_time"] = opts.sleep_time
+    cfg["sleep_max"] = opts.sleep_max
     spool_directory = opts.spool_directory
-    cfg["backend"] = opts.backend
+    #cfg["backend"] = opts.backend
+    handle_backends(opts)
+    # cfg["enable_carbon"] = True
+    return cfg
+
+
+def handle_backends(opts):
+    global cfg
+    if opts.backend == "carbon" or opts.backend == "statsd":
+        if not opts.server:
+            print "Must also have --server for carbon or statsd."
+            sys.exit(1)
+        if opts.backend == "carbon":
+            cfg["enable_carbon"] = True
+            cfg["carbon_servers"] = opts.server
+        if opts.backend == "statsd":
+            cfg["enable_statsd"] = True
+            cfg["statsd_server"] = opts.server
+    if opts.backend == "librato":
+        print "Use graphios.cfg for librato."
+        sys.exit(1)
 
 
 def configure():
@@ -346,7 +384,13 @@ def process_spool_dir(directory):
     log.debug("Processing spool directory %s", directory)
     num_files = 0
     mobjs_len = 0
-    perfdata_files = os.listdir(directory)
+    try:
+        perfdata_files = os.listdir(directory)
+    except (IOError, OSError) as e:
+        print "Exception '%s' reading spool directory: %s" % (e, directory)
+        print "Check if dir exists, or file permissions."
+        print "Exiting."
+        sys.exit(1)
     for perfdata_file in perfdata_files:
         mobjs = []
         processed_dict = {}
@@ -463,9 +507,10 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         (options, args) = parser.parse_args()
         # print options
-        if options.config_file:
-            cfg = read_config(options.config_file)
-        else:
+        try:
+            if options.config_file:
+                cfg = read_config(options.config_file)
+        except AttributeError:
             cfg = verify_options(options)
     else:
         cfg = read_config(config_file)
