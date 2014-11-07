@@ -262,26 +262,38 @@ class carbon(object):
         except:
             self.replace_hostname = True
 
-    def convert_pickle(self, metrics):
+        try:
+            cfg['carbon_plaintext']
+            self.carbon_plaintext = cfg['carbon_plaintext']
+        except:
+            self.carbon_plaintext = False
+
+    def convert_messages(self, metrics):
         """
-        Converts the metric obj list into a pickle message
+        Converts the metric obj list into graphite messages
         """
-        pickle_list = []
+        metric_list = []
         messages = []
         for m in metrics:
             path = self.build_path(m)
             value = m.VALUE
             timestamp = m.TIMET
-            metric_tuple = (path, (timestamp, value))
+            if self.carbon_plaintext:
+                metric_item = "%s %s %s\n" % (path, value, timestamp)
+            else:
+                metric_item = (path, (timestamp, value))
             if self.test_mode:
                 print "%s %s %s" % (path, value, timestamp)
-            pickle_list.append(metric_tuple)
-        for pickle_list_chunk in self.chunks(pickle_list,
+            metric_list.append(metric_item)
+        for metric_list_chunk in self.chunks(metric_list,
                                              self.carbon_max_metrics):
-            payload = pickle.dumps(pickle_list_chunk)
-            header = struct.pack("!L", len(payload))
-            message = header + payload
-            messages.append(message)
+            if self.carbon_plaintext:
+                messages.append("".join(metric_list_chunk))
+            else:
+                payload = pickle.dumps(metric_list_chunk)
+                header = struct.pack("!L", len(payload))
+                message = header + payload
+                messages.append(message)
         return messages
 
     def chunks(self, l, n):
@@ -343,7 +355,10 @@ class carbon(object):
                 port = int(port)
             else:
                 server = serv
-                port = 2004
+                if self.carbon_plaintext:
+                    port = 2003
+                else:
+                    port = 2004
             self.log.debug("Connecting to carbon at %s:%s" %
                           (server, port))
             try:
@@ -353,7 +368,7 @@ class carbon(object):
                 self.log.warning("Can't connect to carbon: %s:%s %s" % (
                                  server, port, ex))
 
-            messages = self.convert_pickle(metrics)
+            messages = self.convert_messages(metrics)
             try:
                 for message in messages:
                     sock.sendall(message)
