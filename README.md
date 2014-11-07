@@ -230,13 +230,13 @@ Then do one of the following three things (depending what you like best):
   1 - Python setup
 
 ```
-    python setup.cfg install
+    python setup.py install
 ```
 
   2 - Create + Install RPM
 
 ```
-    python setup.cfg bdist_rpm
+    python setup.py bdist_rpm
     yum localinstall bdist/graphios-$version.rpm
 ```
 
@@ -361,7 +361,6 @@ Other command line options:
 Usage: graphios.py [options]
 sends nagios performance data to carbon.
 
-
 Options:
   -h, --help            show this help message and exit
   -v, --verbose         sets logging to DEBUG level
@@ -369,10 +368,20 @@ Options:
                         where to look for nagios performance data
   --log-file=LOG_FILE   file to log to
   --backend=BACKEND     sets which storage backend to use
-  --config=CONFIG_FILE  set custom config file location
-  --test                enables test mode
+  --config=CONFIG       set custom config file location
+  --test                Turns on test mode, which won't send to backends
+  --replace_char=REPLACE_CHAR
+                        Replacement Character (default '_'
+  --sleep_time=SLEEP_TIME
+                        How much time to sleep between checks
+  --sleep_max=SLEEP_MAX
+                        Max time to sleep between runs
+  --server=SERVER       Server address (for backend)
+)
 </pre>
 
+** NOTE: If you use --config on the command line, we ignore every other
+command line, your --config will overwrite everything else.
 
 (5) Optional init script: graphios
 ----------------------------------
