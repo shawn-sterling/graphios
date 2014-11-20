@@ -106,6 +106,7 @@ class GraphiosMetric(object):
         self.VALUE = ''                 # The measured value of that metric
         self.UOM = ''                   # The unit of measure for the metric
         self.DATATYPE = ''              # HOSTPERFDATA|SERVICEPERFDATA
+        self.METRICTYPE = 'gauge'       # gauge|counter|timer etc..
         self.TIMET = ''                 # Epoc time the measurement was taken
         self.HOSTNAME = ''              # name of th host measured
         self.SERVICEDESC = ''           # nagios configured service description
