@@ -396,7 +396,7 @@ class statsd(object):
         else:
             self.statsd_servers = cfg['statsd_servers']
 
-    def set_type(self, metric)
+    def set_type(self, metric):
         #detect and set the metric type
        if re.search("gauge", metric.METRICTYPE):
             return 'g'
@@ -406,7 +406,7 @@ class statsd(object):
             return 'ms'
        elif re.search("set", metric.METRICTYPE):
             return 's'
-       else 
+       else:
             return 'g' #default to gauge
 
 
@@ -418,7 +418,7 @@ class statsd(object):
                                     m.GRAPHITEPOSTFIX, m.LABEL)
             path = re.sub(r'\.$', '', path)  # fix paths that end in dot
             path = re.sub(r'\.\.', '.', path)  # fix paths with empty values
-            mtype = set_type(m) # gauge|counter|timer|set
+            mtype = self.set_type(m) # gauge|counter|timer|set
             value = "%s|%s" % (m.VALUE, mtype) # emit literally this to statsd
             metric_tuple = "%s:%s" % (path, value)
             out_list.append(metric_tuple)
