@@ -655,12 +655,12 @@ host_perfdata_file_processing_command=omd-process-host-perfdata-file
 <pre>
 define command{
        command_name    omd-process-service-perfdata-file
-       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/service-perfdata /omd/sites/prod/var/pnp4nagios/spool/service-perfdata.$TIMET$ && cp /omd/sites/prod/var/pnp4nagios/spool/service-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
+       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/service-perfdata /omd/sites/SITENAME/var/pnp4nagios/spool/service-perfdata.$TIMET$ && cp /omd/sites/SITENAME/var/pnp4nagios/spool/service-perfdata.$TIMET$ /omd/sites/SITENAME/var/graphios/spool/
 }
 
 define command{
        command_name    omd-process-host-perfdata-file
-       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ && cp /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
+       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$ && cp /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
 }
 </pre>
 
