@@ -3,7 +3,7 @@ Thumbs.db
 .DS_Store
 *.bak
 
-# JetBrains PyCharm configuration and working files 
+# JetBrains PyCharm configuration and working files
 .idea
 
 *.py[co]
@@ -35,3 +35,6 @@ var/
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+
+# rope
+.ropeproject/

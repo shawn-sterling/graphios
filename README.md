@@ -1,3 +1,9 @@
+
+Graphios
+========
+
+[![Build Status](https://travis-ci.org/shawn-sterling/graphios.svg?branch=master)](https://travis-ci.org/shawn-sterling/graphios)
+
 *Oct 15, 2014*
 
 New graphios 2.0!
