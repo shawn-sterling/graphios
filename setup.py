@@ -47,7 +47,7 @@ def add_perfdata_config(nconfig, nag_cfg):
     with open('nagios/graphios_commands.cfg') as f:
         commands = f.read().splitlines()
 
-    #add the graphios commands
+    # add the graphios commands
     cstat = os.stat(nag_cfg)
     print("nagios uid: %s gid: %s" % (cstat.st_uid, cstat.st_gid))
     if "cfg_dir" in nconfig:
@@ -72,7 +72,7 @@ def write_main_config(nconfig, nag_cfg, main_config):
     """
     writes the nagios.cfg
     """
-    #now add the main config
+    # now add the main config
     nfile = open(nag_cfg, 'a')
     if (
         "process_performance_data" in nconfig and
