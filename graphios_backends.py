@@ -376,7 +376,7 @@ class carbon(object):
                 sock.close()
                 return 0
             # this only gets returned if nothing failed.
-            return len(metrics)
+            ret += len(metrics)
             sock.close()
         return ret
 
