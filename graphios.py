@@ -347,7 +347,13 @@ def get_mobj(nag_array):
     """
     mobj = GraphiosMetric()
     for var in nag_array:
-        (var_name, value) = var.split('::', 1)
+        # drop the metric if we can't split it for any reason
+        try:
+            (var_name, value) = var.split('::', 1)
+        except:
+            log.warn("could not split value %s, dropping metric" % var)
+            return False
+
         value = re.sub("/", cfg["replacement_character"], value)
         if re.search("PERFDATA", var_name):
             mobj.PERFDATA = value
