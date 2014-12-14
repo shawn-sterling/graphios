@@ -514,10 +514,9 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         (options, args) = parser.parse_args()
         # print options
-        try:
-            if options.config_file:
-                cfg = read_config(options.config_file)
-        except AttributeError:
+        if options.config_file:
+            cfg = read_config(options.config_file)
+        else:
             cfg = verify_options(options)
     else:
         cfg = read_config(config_file)
