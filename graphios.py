@@ -96,6 +96,13 @@ parser.add_option("--sleep_max", dest="sleep_max", default=480,
                   help="Max time to sleep between runs")
 parser.add_option("--server", dest="server", default="",
                   help="Server address (for backend)")
+parser.add_option("--no_replace_hostname", action="store_false",
+                  dest="replace_hostname", default=True,
+                  help="Replace '.' in nagios hostnames, default on.")
+parser.add_option("--reverse_hostname", action="store_true",
+                  dest="reverse_hostname",
+                  help="Reverse nagios hostname, default off.")
+
 
 log = logging.getLogger('log')
 
@@ -127,6 +134,7 @@ class GraphiosMetric(object):
         re.sub('"', "", self.LABEL)
         re.sub("'", "", self.VALUE)
         re.sub('"', "", self.VALUE)
+        self.check_adjust_hostname()
         if (
             self.TIMET is not '' and
             self.PERFDATA is not '' and
@@ -144,6 +152,13 @@ class GraphiosMetric(object):
                     self.VALID = False
                 else:
                     self.VALID = True
+
+    def check_adjust_hostname(self):
+        if cfg["reverse_hostname"]:
+            self.HOSTNAME = '.'.join(reversed(self.HOSTNAME.split('.')))
+        if cfg["replace_hostname"]:
+            self.HOSTNAME = self.HOSTNAME.replace(".",
+                                                  cfg["replacement_character"])
 
 
 def chk_bool(value):
@@ -228,12 +243,10 @@ def verify_options(opts):
     global spool_directory
     # because these have defaults in the parser section we know they will be
     # set. So we don't have to do a bunch of ifs.
-    if "log_file" in cfg:
-        if cfg["log_file"] == "''":
-            cfg["log_file"] = "%s/graphios.log" % sys.path[0]
-        else:
-            cfg["log_file"] = opts.log_file
-    cfg["log_file"] = opts.log_file
+    if "log_file" not in cfg:
+        cfg["log_file"] = opts.log_file
+    if cfg["log_file"] == "''" or cfg["log_file"] == "":
+        cfg["log_file"] = "%s/graphios.log" % sys.path[0]
     cfg["log_max_size"] = 25165824         # 24 MB
     if opts.verbose:
         cfg["debug"] = True
@@ -249,6 +262,8 @@ def verify_options(opts):
     cfg["spool_directory"] = opts.spool_directory
     cfg["sleep_time"] = opts.sleep_time
     cfg["sleep_max"] = opts.sleep_max
+    cfg["replace_hostname"] = opts.replace_hostname
+    cfg["reverse_hostname"] = opts.reverse_hostname
     spool_directory = opts.spool_directory
     # cfg["backend"] = opts.backend
     handle_backends(opts)
