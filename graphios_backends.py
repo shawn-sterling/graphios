@@ -256,11 +256,11 @@ class carbon(object):
         except:
             self.test_mode = False
 
-        try:
-            cfg['replace_hostname']
-            self.replace_hostname = cfg['replace_hostname']
-        except:
-            self.replace_hostname = True
+        # try:
+        #     cfg['replace_hostname']
+        #     self.replace_hostname = cfg['replace_hostname']
+        # except:
+        #     self.replace_hostname = True
 
         try:
             cfg['carbon_plaintext']
@@ -314,10 +314,10 @@ class carbon(object):
             post = ".%s" % m.GRAPHITEPOSTFIX
         else:
             post = ""
-        if self.replace_hostname:
-            hostname = m.HOSTNAME.replace('.', self.replacement_character)
-        else:
-            hostname = m.HOSTNAME
+        # if self.replace_hostname:
+        #     hostname = m.HOSTNAME.replace('.', self.replacement_character)
+        # else:
+        hostname = m.HOSTNAME
         if self.use_service_desc:
             # we want: (prefix.)hostname.service_desc(.postfix).perfdata
             service_desc = self.fix_string(m.SERVICEDESC)

@@ -383,6 +383,10 @@ Options:
   --sleep_max=SLEEP_MAX
                         Max time to sleep between runs
   --server=SERVER       Server address (for backend)
+  --no_replace_hostname
+                        Replace '.' in nagios hostnames, default on.
+  --reverse_hostname    Reverse nagios hostname, default off.
+
 )
 </pre>
 
