@@ -141,7 +141,7 @@ class GraphiosMetric(object):
             self.HOSTNAME is not ''
         ):
             if "use_service_desc" in cfg and cfg["use_service_desc"] is True:
-                if self.SERVICEDESC != '':
+                if self.SERVICEDESC != '' or self.DATATYPE == 'HOSTPERFDATA':
                     self.VALID = True
             else:
                 # not using service descriptions
