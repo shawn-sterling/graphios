@@ -30,8 +30,8 @@ of supported upstream metrics systems simultaenously.
 
 * A working nagios / icinga / naemon server
 * A functional carbon or statsd daemon, and/or Librato credentials
-* Python 2.7 or later (Is anyone still using 2.4? Likely very little work to
-make this work under 2.4 again if so. Let me know)
+* Python 2.6 or later (but not python 3.x) (Is anyone still using 2.4? Likely
+very little work to make this work under 2.4 again if so. Let me know)
 
 # License
 
