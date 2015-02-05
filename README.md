@@ -1,3 +1,9 @@
+
+Graphios
+========
+
+[![Build Status](https://travis-ci.org/shawn-sterling/graphios.svg?branch=master)](https://travis-ci.org/shawn-sterling/graphios)
+
 *Oct 15, 2014*
 
 New graphios 2.0!
@@ -24,8 +30,8 @@ of supported upstream metrics systems simultaenously.
 
 * A working nagios / icinga / naemon server
 * A functional carbon or statsd daemon, and/or Librato credentials
-* Python 2.7 or later (Is anyone still using 2.4? Likely very little work to
-make this work under 2.4 again if so. Let me know)
+* Python 2.6 or later (but not python 3.x) (Is anyone still using 2.4? Likely
+very little work to make this work under 2.4 again if so. Let me know)
 
 # License
 
@@ -377,6 +383,10 @@ Options:
   --sleep_max=SLEEP_MAX
                         Max time to sleep between runs
   --server=SERVER       Server address (for backend)
+  --no_replace_hostname
+                        Replace '.' in nagios hostnames, default on.
+  --reverse_hostname    Reverse nagios hostname, default off.
+
 )
 </pre>
 
@@ -655,12 +665,12 @@ host_perfdata_file_processing_command=omd-process-host-perfdata-file
 <pre>
 define command{
        command_name    omd-process-service-perfdata-file
-       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/service-perfdata /omd/sites/prod/var/pnp4nagios/spool/service-perfdata.$TIMET$ && cp /omd/sites/prod/var/pnp4nagios/spool/service-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
+       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/service-perfdata /omd/sites/SITENAME/var/pnp4nagios/spool/service-perfdata.$TIMET$ && cp /omd/sites/SITENAME/var/pnp4nagios/spool/service-perfdata.$TIMET$ /omd/sites/SITENAME/var/graphios/spool/
 }
 
 define command{
        command_name    omd-process-host-perfdata-file
-       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ && cp /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
+       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$ && cp /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
 }
 </pre>
 

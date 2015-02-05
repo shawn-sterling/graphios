@@ -90,7 +90,7 @@ class librato(object):
 
     def k_not_in_whitelist(self, k):
         # return True if k isn't whitelisted
-        #wl_match = True
+        # wl_match = True
         for pattern in self.whitelist:
             if pattern.search(k) is not None:
                 return False
@@ -106,11 +106,11 @@ class librato(object):
 
         k = "%s\t%s" % (name, source)
 
-        #bail if this metric isn't whitelisted
+        # bail if this metric isn't whitelisted
         if self.k_not_in_whitelist(k):
             return None
 
-        #add the metric to our gauges dict
+        # add the metric to our gauges dict
         if k not in self.gauges:
             self.gauges[k] = {
                 'name': name,
@@ -131,7 +131,7 @@ class librato(object):
 
         try:
             f = urllib2.urlopen(req, timeout=self.flush_timeout_secs)
-            #f.read()
+            # f.read()
             f.close()
         except urllib2.HTTPError as error:
             self.metrics_sent = 0
@@ -256,11 +256,11 @@ class carbon(object):
         except:
             self.test_mode = False
 
-        try:
-            cfg['replace_hostname']
-            self.replace_hostname = cfg['replace_hostname']
-        except:
-            self.replace_hostname = True
+        # try:
+        #     cfg['replace_hostname']
+        #     self.replace_hostname = cfg['replace_hostname']
+        # except:
+        #     self.replace_hostname = True
 
         try:
             cfg['carbon_plaintext']
@@ -314,10 +314,10 @@ class carbon(object):
             post = ".%s" % m.GRAPHITEPOSTFIX
         else:
             post = ""
-        if self.replace_hostname:
-            hostname = m.HOSTNAME.replace('.', self.replacement_character)
-        else:
-            hostname = m.HOSTNAME
+        # if self.replace_hostname:
+        #     hostname = m.HOSTNAME.replace('.', self.replacement_character)
+        # else:
+        hostname = m.HOSTNAME
         if self.use_service_desc:
             # we want: (prefix.)hostname.service_desc(.postfix).perfdata
             service_desc = self.fix_string(m.SERVICEDESC)
@@ -359,8 +359,7 @@ class carbon(object):
                     port = 2003
                 else:
                     port = 2004
-            self.log.debug("Connecting to carbon at %s:%s" %
-                          (server, port))
+            self.log.debug("Connecting to carbon at %s:%s" % (server, port))
             try:
                 sock.connect((socket.gethostbyname(server), port))
                 self.log.debug("connected")
@@ -377,7 +376,7 @@ class carbon(object):
                 sock.close()
                 return 0
             # this only gets returned if nothing failed.
-            return len(metrics)
+            ret += len(metrics)
             sock.close()
         return ret
 
@@ -440,8 +439,7 @@ class statsd(object):
             else:
                 server = serv
                 port = 8125
-            self.log.debug("sending to statsd at %s:%s" %
-                          (server, port))
+            self.log.debug("sending to statsd at %s:%s" % (server, port))
             for m in mlist:
                 try:
                     sock.sendto(m, (socket.gethostbyname(server), port))
