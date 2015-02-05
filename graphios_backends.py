@@ -396,18 +396,17 @@ class statsd(object):
             self.statsd_servers = cfg['statsd_servers']
 
     def set_type(self, metric):
-        #detect and set the metric type
-       if re.search("gauge", metric.METRICTYPE):
+        # detect and set the metric type
+        if re.search("gauge", metric.METRICTYPE):
             return 'g'
-       elif re.search("counter", metric.METRICTYPE):
+        elif re.search("counter", metric.METRICTYPE):
             return 'c'
-       elif re.search("time", metric.METRICTYPE):
+        elif re.search("time", metric.METRICTYPE):
             return 'ms'
-       elif re.search("set", metric.METRICTYPE):
+        elif re.search("set", metric.METRICTYPE):
             return 's'
-       else:
-            return 'g' #default to gauge
-
+        else:
+            return 'g'  # default to gauge
 
     def convert(self, metrics):
         # Converts the metric object list into a list of statsd tuples
@@ -417,7 +416,7 @@ class statsd(object):
                                     m.GRAPHITEPOSTFIX, m.LABEL)
             path = re.sub(r'\.$', '', path)  # fix paths that end in dot
             path = re.sub(r'\.\.', '.', path)  # fix paths with empty values
-            mtype = self.set_type(m) # gauge|counter|timer|set
+            mtype = self.set_type(m)  # gauge|counter|timer|set
             value = "%s|%s" % (m.VALUE, mtype) # emit literally this to statsd
             metric_tuple = "%s:%s" % (path, value)
             out_list.append(metric_tuple)
