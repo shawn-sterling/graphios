@@ -417,7 +417,7 @@ class statsd(object):
             path = re.sub(r'\.$', '', path)  # fix paths that end in dot
             path = re.sub(r'\.\.', '.', path)  # fix paths with empty values
             mtype = self.set_type(m)  # gauge|counter|timer|set
-            value = "%s|%s" % (m.VALUE, mtype) # emit literally this to statsd
+            value = "%s|%s" % (m.VALUE, mtype)  # emit literally this to statsd
             metric_tuple = "%s:%s" % (path, value)
             out_list.append(metric_tuple)
 
