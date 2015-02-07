@@ -291,14 +291,14 @@ service_perfdata_file_template=DATATYPE::SERVICEPERFDATA\tTIMET::$TIMET$\tHOSTNA
 
 service_perfdata_file_mode=a
 service_perfdata_file_processing_interval=15
-service_perfdata_file_processing_command=graphite_perf_service
+service_perfdata_file_processing_command=graphios_perf_service
 
 host_perfdata_file=/var/spool/nagios/graphios/host-perfdata
 host_perfdata_file_template=DATATYPE::HOSTPERFDATA\tTIMET::$TIMET$\tHOSTNAME::$HOSTNAME$\tHOSTPERFDATA::$HOSTPERFDATA$\tHOSTCHECKCOMMAND::$HOSTCHECKCOMMAND$\tHOSTSTATE::$HOSTSTATE$\tHOSTSTATETYPE::$HOSTSTATETYPE$\tGRAPHITEPREFIX::$_HOSTGRAPHITEPREFIX$\tGRAPHITEPOSTFIX::$_HOSTGRAPHITEPOSTFIX$
 
 host_perfdata_file_mode=a
 host_perfdata_file_processing_interval=15
-host_perfdata_file_processing_command=graphite_perf_host
+host_perfdata_file_processing_command=graphios_perf_host
 </pre>
 
 Which sets up some custom variables, specifically:
