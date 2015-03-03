@@ -213,9 +213,9 @@ def verify_config(config_dict):
     verifies the required config variables are found
     """
     global spool_directory
-    ensure_list = ['replacement_character', 'reverse_hostname', 'replace_hostname',
-                   'log_file', 'log_max_size', 'log_level', 'sleep_time', 'sleep_max',
-                   'test_mode']
+    ensure_list = ['replacement_character', 'log_file', 'log_max_size',
+                   'log_level', 'sleep_time', 'sleep_max', 'test_mode',
+                   'reverse_hostname', 'replace_hostname']
     missing_values = []
     for ensure in ensure_list:
         if ensure not in config_dict:
