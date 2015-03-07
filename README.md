@@ -22,7 +22,7 @@ What's new?
 
 Graphios is a script to emit nagios perfdata to various upstream metrics
 processing and time-series (graphing) systems. It's currently compatible with
-[graphite], [statsd], and [Librato], with possibly [influxDB], [Heka], and
+[graphite], [statsd], [Librato] and [InfluxDB], with possibly [Heka], and
 [RRDTool] support coming soon. Graphios can emit Nagios metrics to any number
 of supported upstream metrics systems simultaenously.
 

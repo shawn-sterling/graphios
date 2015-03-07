@@ -478,6 +478,7 @@ def init_backends():
     avail_backends = ("carbon",
                       "statsd",
                       "librato",
+                      "influxdb",
                       "stdout",
                       )
     # populate the controller dict from avail + config. this assumes you named
