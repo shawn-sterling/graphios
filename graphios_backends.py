@@ -452,6 +452,143 @@ class statsd(object):
 
 
 # ###########################################################
+# #### influxdb backend  ####################################
+
+class influxdb(object):
+    def __init__(self, cfg):
+        self.log = logging.getLogger("log.backends.influxdb")
+        self.log.info("InfluxDB backend initialized")
+        self.scheme = "http"
+        self.default_ports = {'https': 8087, 'http': 8086}
+        self.timeout = 5
+
+        if 'influxdb_use_ssl' in cfg:
+            if cfg['influxdb_use_ssl']:
+                self.scheme = "https"
+
+        if 'influxdb_servers' in cfg:
+            self.influxdb_servers = cfg['influxdb_servers'].split(',')
+        else:
+            self.influxdb_servers = ['127.0.0.1:%i' %
+                                     self.default_ports[self.scheme]]
+
+        if 'influxdb_user' in cfg:
+            self.influxdb_user = cfg['influxdb_user']
+        else:
+            self.log.critical("Missing influxdb_user in graphios.cfg")
+            sys.exit(1)
+
+        if 'influxdb_password' in cfg:
+            self.influxdb_password = cfg['influxdb_password']
+        else:
+            self.log.critical("Missing influxdb_password in graphios.cfg")
+            sys.exit(1)
+
+        if 'influxdb_db' in cfg:
+            self.influxdb_db = cfg['influxdb_db']
+        else:
+            self.influxdb_db = "nagios"
+
+        if 'influxdb_max_metrics' in cfg:
+            self.influxdb_max_metrics = cfg['influxdb_max_metrics']
+        else:
+            self.influxdb_max_metrics = 250
+
+    def build_url(self, server):
+        """ Returns a url to specified InfluxDB-server """
+        test_port = server.split(':')
+        if len(test_port) < 2:
+            server = "%s:%i" % (server, self.default_ports[self.scheme])
+
+        return "%s://%s/db/%s/series?u=%s&p=%s" % (self.scheme, server,
+                                                   self.influxdb_db,
+                                                   self.influxdb_user,
+                                                   self.influxdb_password)
+
+    def build_path(self, m):
+        """ Returns a path """
+        path = ""
+
+        if m.GRAPHITEPREFIX != "":
+            path = "%s.%s." % (m.GRAPHITEPREFIX, m.HOSTNAME)
+        else:
+            path = "%s." % m.HOSTNAME
+
+        if m.SERVICEDESC != "":
+            path = "%s%s." % (path, m.SERVICEDESC)
+
+        path = "%s%s" % (path, m.LABEL)
+
+        if m.GRAPHITEPOSTFIX != "":
+            path = "%s.%s" % (path, m.GRAPHITEPOSTFIX)
+
+        return path
+
+    def chunks(self, l, n):
+        """ Yield successive n-sized chunks from l. """
+        for i in xrange(0, len(l), n):
+            yield l[i:i+n]
+
+    def send(self, metrics):
+        """ Connect to influxdb and send metrics """
+        ret = 0
+        perfdata = {}
+        series = []
+        for m in metrics:
+            ret += 1
+
+            path = self.build_path(m)
+
+            if path not in perfdata:
+                perfdata[path] = []
+
+            # influx assumes timestamp in milliseconds
+            timet_ms = int(m.TIMET)*1000
+
+            # Ensure a int/float gets passed
+            try:
+                value = int(m.VALUE)
+            except ValueError:
+                try:
+                    value = float(m.VALUE)
+                except ValueError:
+                    value = 0
+
+            perfdata[path].append([timet_ms, value])
+
+        for k, v in perfdata.iteritems():
+            series.append({"name": k, "columns": ["time", "value"],
+                           "points": v})
+
+        series_chunks = self.chunks(series, self.influxdb_max_metrics)
+        for chunk in series_chunks:
+            for s in self.influxdb_servers:
+                self.log.debug("Connecting to InfluxDB at %s" % s)
+                json_body = json.dumps(chunk)
+                req = urllib2.Request(self.build_url(s), json_body)
+                req.add_header('Content-Type', 'application/json')
+
+                try:
+                    r = urllib2.urlopen(req, timeout=self.timeout)
+                    r.close()
+                except urllib2.HTTPError as e:
+                    ret = 0
+                    body = e.read()
+                    self.log.warning('Failed to send metrics to InfluxDB. \
+                                        Status code: %d: %s' % (e.code, body))
+                except IOError as e:
+                    ret = 0
+                    fail_string = "Failed to send metrics to InfluxDB. "
+                    if hasattr(e, 'code'):
+                        fail_string = fail_string + "Status code: %s" % e.code
+                    if hasattr(e, 'reason'):
+                        fail_string = fail_string + str(e.reason)
+                    self.log.warning(fail_string)
+
+        return ret
+
+
+# ###########################################################
 # #### stdout backend  #######################################
 
 class stdout(object):
