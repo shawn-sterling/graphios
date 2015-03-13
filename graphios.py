@@ -296,6 +296,12 @@ def configure():
     sets up graphios config
     """
     global debug
+    try:
+        cfg["log_max_size"] = int(cfg["log_max_size"])
+    except ValueError:
+        print "log_max_size needs to be a integer"
+        sys.exit(1)
+
     log_handler = logging.handlers.RotatingFileHandler(
         cfg["log_file"], maxBytes=cfg["log_max_size"], backupCount=4,
         # encoding='bz2')
