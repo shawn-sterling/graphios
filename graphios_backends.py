@@ -245,6 +245,12 @@ class carbon(object):
             self.carbon_max_metrics = 200
 
         try:
+            self.carbon_max_metrics = int(self.carbon_max_metrics)
+        except ValueError:
+            self.log.critical("carbon_max_metrics needs to be a integer")
+            sys.exit(1)
+
+        try:
             cfg['use_service_desc']
             self.use_service_desc = cfg['use_service_desc']
         except:
@@ -493,6 +499,12 @@ class influxdb(object):
             self.influxdb_max_metrics = cfg['influxdb_max_metrics']
         else:
             self.influxdb_max_metrics = 250
+
+        try:
+            self.influxdb_max_metrics = int(self.influxdb_max_metrics)
+        except ValueError:
+            self.log.critical("influxdb_max_metrics needs to be a integer")
+            sys.exit(1)
 
     def build_url(self, server):
         """ Returns a url to specified InfluxDB-server """
