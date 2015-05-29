@@ -10,6 +10,7 @@ import base64
 import urllib2
 import json
 import os
+import ast
 # ###########################################################
 # #### Librato Backend
 
@@ -456,7 +457,6 @@ class statsd(object):
 
         return ret
 
-
 # ###########################################################
 # #### influxdb backend  ####################################
 
@@ -583,6 +583,140 @@ class influxdb(object):
                 try:
                     r = urllib2.urlopen(req, timeout=self.timeout)
                     r.close()
+                except urllib2.HTTPError as e:
+                    ret = 0
+                    body = e.read()
+                    self.log.warning('Failed to send metrics to InfluxDB. \
+                                        Status code: %d: %s' % (e.code, body))
+                except IOError as e:
+                    ret = 0
+                    fail_string = "Failed to send metrics to InfluxDB. "
+                    if hasattr(e, 'code'):
+                        fail_string = fail_string + "Status code: %s" % e.code
+                    if hasattr(e, 'reason'):
+                        fail_string = fail_string + str(e.reason)
+                    self.log.warning(fail_string)
+
+        return ret
+
+
+
+# ###########################################################
+# #### influxdb-0.9 backend  ####################################
+
+class influxdb09(object):
+    def __init__(self, cfg):
+        self.log = logging.getLogger("log.backends.influxdb")
+        self.log.info("InfluxDB backend initialized")
+        self.scheme = "http"
+        self.default_ports = {'https': 8087, 'http': 8086}
+        self.timeout = 5
+
+        if 'influxdb_use_ssl' in cfg:
+            if cfg['influxdb_use_ssl']:
+                self.scheme = "https"
+
+        if 'influxdb_servers' in cfg:
+            self.influxdb_servers = cfg['influxdb_servers'].split(',')
+        else:
+            self.influxdb_servers = ['127.0.0.1:%i' %
+                                     self.default_ports[self.scheme]]
+
+        if 'influxdb_user' in cfg:
+            self.influxdb_user = cfg['influxdb_user']
+        else:
+            self.log.critical("Missing influxdb_user in graphios.cfg")
+            sys.exit(1)
+
+        if 'influxdb_password' in cfg:
+            self.influxdb_password = cfg['influxdb_password']
+        else:
+            self.log.critical("Missing influxdb_password in graphios.cfg")
+            sys.exit(1)
+
+        if 'influxdb_db' in cfg:
+            self.influxdb_db = cfg['influxdb_db']
+        else:
+            self.influxdb_db = "nagios"
+
+        if 'influxdb_max_metrics' in cfg:
+            self.influxdb_max_metrics = cfg['influxdb_max_metrics']
+        else:
+            self.influxdb_max_metrics = 250
+
+        if 'influxdb_extra_tags' in cfg:
+            self.influxdb_extra_tags = ast.literal_eval(cfg['influxdb_extra_tags'])
+            print self.influxdb_extra_tags
+        else:
+            self.influxdb_extra_tags = {}
+
+        try:
+            self.influxdb_max_metrics = int(self.influxdb_max_metrics)
+        except ValueError:
+            self.log.critical("influxdb_max_metrics needs to be a integer")
+            sys.exit(1)
+
+    def build_url(self, server):
+        """ Returns a url to specified InfluxDB-server """
+        test_port = server.split(':')
+        if len(test_port) < 2:
+            server = "%s:%i" % (server, self.default_ports[self.scheme])
+
+        return "%s://%s/write?u=%s&p=%s" % (self.scheme, server,
+                                                   self.influxdb_user,
+                                                   self.influxdb_password)
+
+    def chunks(self, l, n):
+        """ Yield successive n-sized chunks from l. """
+        for i in xrange(0, len(l), n):
+            yield l[i:i+n]
+
+    def send(self, metrics):
+        from pprint import pprint
+        """ Connect to influxdb and send metrics """
+        ret = 0
+        perfdata = []
+        for m in metrics:
+            ret += 1
+
+            if (m.SERVICEDESC == ''):
+                path = m.HOSTCHECKCOMMAND
+            else:
+                path = m.SERVICEDESC
+
+            # Ensure a int/float gets passed
+            try:
+                value = int(m.VALUE)
+            except ValueError:
+                try:
+                    value = float(m.VALUE)
+                except ValueError:
+                    value = 0
+
+            tags = { "check": m.LABEL, "host": m.HOSTNAME }
+            tags.update(self.influxdb_extra_tags)
+
+            perfdata.append({
+                                "timestamp": int(m.TIMET),
+                                "name": path,
+                                "tags": tags,
+                                "fields": {"value": value}
+                            })
+
+
+        series_chunks = self.chunks(perfdata, self.influxdb_max_metrics)
+        for chunk in series_chunks:
+            series = {"database": self.influxdb_db, "points": chunk}
+            for s in self.influxdb_servers:
+                self.log.debug("Connecting to InfluxDB at %s" % s)
+                json_body = json.dumps(series)
+                req = urllib2.Request(self.build_url(s), json_body)
+                req.add_header('Content-Type', 'application/json')
+
+                try:
+                    pass
+                    #r = urllib2.urlopen(req, timeout=self.timeout)
+                    #r.close()
                 except urllib2.HTTPError as e:
                     ret = 0
                     body = e.read()
