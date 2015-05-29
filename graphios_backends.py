@@ -457,6 +457,7 @@ class statsd(object):
 
         return ret
 
+
 # ###########################################################
 # #### influxdb backend  ####################################
 
@@ -600,7 +601,6 @@ class influxdb(object):
         return ret
 
 
-
 # ###########################################################
 # #### influxdb-0.9 backend  ####################################
 
@@ -645,7 +645,8 @@ class influxdb09(object):
             self.influxdb_max_metrics = 250
 
         if 'influxdb_extra_tags' in cfg:
-            self.influxdb_extra_tags = ast.literal_eval(cfg['influxdb_extra_tags'])
+            self.influxdb_extra_tags = ast.literal_eval(
+                cfg['influxdb_extra_tags'])
             print self.influxdb_extra_tags
         else:
             self.influxdb_extra_tags = {}
@@ -663,8 +664,8 @@ class influxdb09(object):
             server = "%s:%i" % (server, self.default_ports[self.scheme])
 
         return "%s://%s/write?u=%s&p=%s" % (self.scheme, server,
-                                                   self.influxdb_user,
-                                                   self.influxdb_password)
+                                            self.influxdb_user,
+                                            self.influxdb_password)
 
     def chunks(self, l, n):
         """ Yield successive n-sized chunks from l. """
@@ -672,7 +673,6 @@ class influxdb09(object):
             yield l[i:i+n]
 
     def send(self, metrics):
-        from pprint import pprint
         """ Connect to influxdb and send metrics """
         ret = 0
         perfdata = []
@@ -693,16 +693,14 @@ class influxdb09(object):
                 except ValueError:
                     value = 0
 
-            tags = { "check": m.LABEL, "host": m.HOSTNAME }
+            tags = {"check": m.LABEL, "host": m.HOSTNAME}
             tags.update(self.influxdb_extra_tags)
 
             perfdata.append({
-                                "timestamp": int(m.TIMET),
-                                "name": path,
-                                "tags": tags,
-                                "fields": {"value": value}
-                            })
-
+                            "timestamp": int(m.TIMET),
+                            "name": path,
+                            "tags": tags,
+                            "fields": {"value": value}})
 
         series_chunks = self.chunks(perfdata, self.influxdb_max_metrics)
         for chunk in series_chunks:
@@ -714,9 +712,8 @@ class influxdb09(object):
                 req.add_header('Content-Type', 'application/json')
 
                 try:
-                    pass
-                    #r = urllib2.urlopen(req, timeout=self.timeout)
-                    #r.close()
+                    r = urllib2.urlopen(req, timeout=self.timeout)
+                    r.close()
                 except urllib2.HTTPError as e:
                     ret = 0
                     body = e.read()
