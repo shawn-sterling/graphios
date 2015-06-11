@@ -10,6 +10,7 @@ import base64
 import urllib2
 import json
 import os
+import ast
 # ###########################################################
 # #### Librato Backend
 
@@ -541,6 +542,30 @@ class influxdb(object):
         for i in xrange(0, len(l), n):
             yield l[i:i+n]
 
+    def _send(self, server, chunk):
+        self.log.debug("Connecting to InfluxDB at %s" % server)
+        json_body = json.dumps(chunk)
+        req = urllib2.Request(self.build_url(server), json_body)
+        req.add_header('Content-Type', 'application/json')
+
+        try:
+            r = urllib2.urlopen(req, timeout=self.timeout)
+            r.close()
+            return True
+        except urllib2.HTTPError as e:
+            body = e.read()
+            self.log.warning('Failed to send metrics to InfluxDB. \
+                                Status code: %d: %s' % (e.code, body))
+            return False
+        except IOError as e:
+            fail_string = "Failed to send metrics to InfluxDB. "
+            if hasattr(e, 'code'):
+                fail_string = fail_string + "Status code: %s" % e.code
+            if hasattr(e, 'reason'):
+                fail_string = fail_string + str(e.reason)
+            self.log.warning(fail_string)
+            return False
+
     def send(self, metrics):
         """ Connect to influxdb and send metrics """
         ret = 0
@@ -575,27 +600,71 @@ class influxdb(object):
         series_chunks = self.chunks(series, self.influxdb_max_metrics)
         for chunk in series_chunks:
             for s in self.influxdb_servers:
-                self.log.debug("Connecting to InfluxDB at %s" % s)
-                json_body = json.dumps(chunk)
-                req = urllib2.Request(self.build_url(s), json_body)
-                req.add_header('Content-Type', 'application/json')
+                if not self._send(s, chunk):
+                    ret = 0
 
+        return ret
+
+
+# ###########################################################
+# #### influxdb-0.9 backend  ####################################
+
+class influxdb09(influxdb):
+    def __init__(self, cfg):
+        influxdb.__init__(self, cfg)
+        if 'influxdb_extra_tags' in cfg:
+            self.influxdb_extra_tags = ast.literal_eval(
+                cfg['influxdb_extra_tags'])
+            print self.influxdb_extra_tags
+        else:
+            self.influxdb_extra_tags = {}
+
+    def build_url(self, server):
+        """ Returns a url to specified InfluxDB-server """
+        test_port = server.split(':')
+        if len(test_port) < 2:
+            server = "%s:%i" % (server, self.default_ports[self.scheme])
+
+        return "%s://%s/write?u=%s&p=%s" % (self.scheme, server,
+                                            self.influxdb_user,
+                                            self.influxdb_password)
+
+    def send(self, metrics):
+        """ Connect to influxdb and send metrics """
+        ret = 0
+        perfdata = []
+        for m in metrics:
+            ret += 1
+
+            if (m.SERVICEDESC == ''):
+                path = m.HOSTCHECKCOMMAND
+            else:
+                path = m.SERVICEDESC
+
+            # Ensure a int/float gets passed
+            try:
+                value = int(m.VALUE)
+            except ValueError:
                 try:
-                    r = urllib2.urlopen(req, timeout=self.timeout)
-                    r.close()
-                except urllib2.HTTPError as e:
+                    value = float(m.VALUE)
+                except ValueError:
+                    value = 0
+
+            tags = {"check": m.LABEL, "host": m.HOSTNAME}
+            tags.update(self.influxdb_extra_tags)
+
+            perfdata.append({
+                            "timestamp": int(m.TIMET),
+                            "name": path,
+                            "tags": tags,
+                            "fields": {"value": value}})
+
+        series_chunks = self.chunks(perfdata, self.influxdb_max_metrics)
+        for chunk in series_chunks:
+            series = {"database": self.influxdb_db, "points": chunk}
+            for s in self.influxdb_servers:
+                if not self._send(s, series):
                     ret = 0
-                    body = e.read()
-                    self.log.warning('Failed to send metrics to InfluxDB. \
-                                        Status code: %d: %s' % (e.code, body))
-                except IOError as e:
-                    ret = 0
-                    fail_string = "Failed to send metrics to InfluxDB. "
-                    if hasattr(e, 'code'):
-                        fail_string = fail_string + "Status code: %s" % e.code
-                    if hasattr(e, 'reason'):
-                        fail_string = fail_string + str(e.reason)
-                    self.log.warning(fail_string)
 
         return ret
 
