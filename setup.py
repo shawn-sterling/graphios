@@ -140,7 +140,7 @@ distro_ver = int(platform.dist()[1].split('.')[0])
 
 # print "using %s %s" % (distro, distro_ver)
 
-if distro == 'Ubuntu' or 'debian':
+if distro in ['Ubuntu', 'debian']:
     data_files.append(('/etc/init/', ['init/debian/graphios.conf']))
     data_files.append(('/usr/local/bin/', ['graphios.py']))
     data_files.append(('/etc/init.d/', ['init/debian/graphios']))
