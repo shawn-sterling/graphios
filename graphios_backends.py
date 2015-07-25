@@ -655,7 +655,7 @@ class influxdb09(influxdb):
 
             perfdata.append({
                             "timestamp": int(m.TIMET),
-                            "name": path,
+                            "measurement": path,
                             "tags": tags,
                             "fields": {"value": value}})
 
