@@ -426,8 +426,9 @@ class statsd(object):
         # Converts the metric object list into a list of statsd tuples
         out_list = []
         for m in metrics:
-            path = '%s.%s.%s.%s.%s' % (m.METRICBASEPATH, m.GRAPHITEPREFIX, m.HOSTNAME,
-                                    m.GRAPHITEPOSTFIX, m.LABEL)
+            path = '%s.%s.%s.%s.%s' % (m.METRICBASEPATH, m.GRAPHITEPREFIX,
+                                       m.HOSTNAME, m.GRAPHITEPOSTFIX,
+                                       m.LABEL)
             path = re.sub(r'\.$', '', path)  # fix paths that end in dot
             path = re.sub(r'\.\.', '.', path)  # fix paths with empty values
             mtype = self.set_type(m)  # gauge|counter|timer|set
@@ -533,7 +534,7 @@ class influxdb(object):
 
         if m.GRAPHITEPREFIX != "":
             path += "%s.%s." % m.GRAPHITEPREFIX
-        
+
         path += "%s." % m.HOSTNAME
 
         if m.SERVICEDESC != "":
