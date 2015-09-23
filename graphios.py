@@ -110,24 +110,25 @@ log = logging.getLogger('log')
 
 class GraphiosMetric(object):
     def __init__(self):
-        self.LABEL = ''                 # The name in the perfdata from nagios
-        self.VALUE = ''                 # The measured value of that metric
-        self.UOM = ''                   # The unit of measure for the metric
-        self.DATATYPE = ''              # HOSTPERFDATA|SERVICEPERFDATA
-        self.METRICTYPE = 'gauge'       # gauge|counter|timer etc..
-        self.TIMET = ''                 # Epoc time the measurement was taken
-        self.HOSTNAME = ''              # name of th host measured
-        self.SERVICEDESC = ''           # nagios configured service description
-        self.PERFDATA = ''              # the space-delimited raw perfdata
-        self.SERVICECHECKCOMMAND = ''   # literal check command syntax
-        self.HOSTCHECKCOMMAND = ''      # literal check command syntax
-        self.HOSTSTATE = ''             # current state afa nagios is concerned
-        self.HOSTSTATETYPE = ''         # HARD|SOFT
-        self.SERVICESTATE = ''          # current state afa nagios is concerned
-        self.SERVICESTATETYPE = ''      # HARD|SOFT
-        self.GRAPHITEPREFIX = ''        # graphios prefix
-        self.GRAPHITEPOSTFIX = ''       # graphios suffix
-        self.VALID = False              # if this metric is valid
+        self.LABEL = ''                                 # The name in the perfdata from nagios
+        self.VALUE = ''                                 # The measured value of that metric
+        self.UOM = ''                                   # The unit of measure for the metric
+        self.DATATYPE = ''                              # HOSTPERFDATA|SERVICEPERFDATA
+        self.METRICTYPE = 'gauge'                       # gauge|counter|timer etc..
+        self.TIMET = ''                                 # Epoc time the measurement was taken
+        self.HOSTNAME = ''                              # name of th host measured
+        self.SERVICEDESC = ''                           # nagios configured service description
+        self.PERFDATA = ''                              # the space-delimited raw perfdata
+        self.SERVICECHECKCOMMAND = ''                   # literal check command syntax
+        self.HOSTCHECKCOMMAND = ''                      # literal check command syntax
+        self.HOSTSTATE = ''                             # current state afa nagios is concerned
+        self.HOSTSTATETYPE = ''                         # HARD|SOFT
+        self.SERVICESTATE = ''                          # current state afa nagios is concerned
+        self.SERVICESTATETYPE = ''                      # HARD|SOFT
+        self.METRICBASEPATH = cfg["metric_base_path"]   # Establishes a root base path
+        self.GRAPHITEPREFIX = ''                        # graphios prefix
+        self.GRAPHITEPOSTFIX = ''                       # graphios suffix
+        self.VALID = False                              # if this metric is valid
 
     def validate(self):
         # because we eliminated all whitespace, there shouldn't be any quotes
@@ -148,6 +149,9 @@ class GraphiosMetric(object):
             else:
                 # not using service descriptions
                 if (
+                    # We should keep this logic and not check for a
+                    # base path here. Just because there's a base path 
+                    # doesn't mean the metric should be considered valid
                     self.GRAPHITEPREFIX == "" and
                     self.GRAPHITEPOSTFIX == ""
                 ):

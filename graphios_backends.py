@@ -51,7 +51,7 @@ class librato(object):
         try:
             cfg['librato_namevals']
         except:
-            self.namevals = ['GRAPHITEPREFIX', 'SERVICEDESC',
+            self.namevals = ['METRICBASEPATH', 'GRAPHITEPREFIX', 'SERVICEDESC',
                              'GRAPHITEPOSTFIX', 'LABEL']
         else:
             self.namevals = cfg['librato_namevals'].split(",")
@@ -258,6 +258,12 @@ class carbon(object):
             self.use_service_desc = False
 
         try:
+            cfg['metric_base_path']
+            self.metric_base_path = cfg['metric_base_path']
+        except:
+            self.metric_base_path = ''
+
+        try:
             cfg['test_mode']
             self.test_mode = cfg['test_mode']
         except:
@@ -313,10 +319,11 @@ class carbon(object):
         """
         Builds a carbon metric
         """
+        pre = ""
+        if m.METRICBASEPATH != "":
+            pre = "%s." % m.METRICBASEPATH
         if m.GRAPHITEPREFIX != "":
-            pre = "%s." % m.GRAPHITEPREFIX
-        else:
-            pre = ""
+            pre += "%s." % m.GRAPHITEPREFIX
         if m.GRAPHITEPOSTFIX != "":
             post = ".%s" % m.GRAPHITEPOSTFIX
         else:
@@ -419,7 +426,7 @@ class statsd(object):
         # Converts the metric object list into a list of statsd tuples
         out_list = []
         for m in metrics:
-            path = '%s.%s.%s.%s' % (m.GRAPHITEPREFIX, m.HOSTNAME,
+            path = '%s.%s.%s.%s.%s' % (m.METRICBASEPATH, m.GRAPHITEPREFIX, m.HOSTNAME,
                                     m.GRAPHITEPOSTFIX, m.LABEL)
             path = re.sub(r'\.$', '', path)  # fix paths that end in dot
             path = re.sub(r'\.\.', '.', path)  # fix paths with empty values
@@ -521,14 +528,16 @@ class influxdb(object):
     def build_path(self, m):
         """ Returns a path """
         path = ""
+        if m.METRICBASEPATH != "":
+            path += "%s." % m.METRICBASEPATH
 
         if m.GRAPHITEPREFIX != "":
-            path = "%s.%s." % (m.GRAPHITEPREFIX, m.HOSTNAME)
-        else:
-            path = "%s." % m.HOSTNAME
+            path += "%s.%s." % m.GRAPHITEPREFIX
+        
+        path += "%s." % m.HOSTNAME
 
         if m.SERVICEDESC != "":
-            path = "%s%s." % (path, m.SERVICEDESC)
+            path += "%s." % m.SERVICEDESC
 
         path = "%s%s" % (path, m.LABEL)
 
@@ -696,6 +705,7 @@ class stdout(object):
             print("%s:%s" % ('HOSTSTATETYPE ', metric.HOSTSTATETYPE))
             print("%s:%s" % ('SERVICESTATE ', metric.SERVICESTATE))
             print("%s:%s" % ('SERVICESTATETYPE ', metric.SERVICESTATETYPE))
+            print("%s:%s" % ('METRICBASEPATH ', metric.METRICBASEPATH))
             print("%s:%s" % ('GRAPHITEPREFIX ', metric.GRAPHITEPREFIX))
             print("%s:%s" % ('GRAPHITEPOSTFIX ', metric.GRAPHITEPOSTFIX))
             print("-------")
