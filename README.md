@@ -141,6 +141,23 @@ You should think carefully about how you name your metrics, because later on,
 these names will enable you to easily combine metrics (like load1) across
 various sources (like all webservers).
 
+Using metric_base_path to add a universal prefix
+------------------------------------------------
+
+In an environment where multiple things are feeding metrics into your backend
+service, it can be handy to differentiate by source. Normally, you would need
+to prepend the graphiteprefix to all services and hosts, but in some cases, this
+isn't possible or feasible. 
+
+When you want everything to be prepended with the same string, use the
+metric_base_path setting: 
+
+	metric_base_path	= mycorp.nagios
+	
+Note that quotes will be preserved. Also, _graphiteprefix and _graphitepostfix 
+will be applied in addition to this string, so if you are already adding 
+mycorp.nagios to your prefix, you will end up with mycorp.nagios.mycorp.nagios.metricname
+
 A few words on Naming things for Librato
 ----------------------------------------
 
