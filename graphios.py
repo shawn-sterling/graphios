@@ -130,6 +130,9 @@ class GraphiosMetric(object):
         self.GRAPHITEPOSTFIX = ''       # graphios suffix
         self.VALID = False              # if this metric is valid
 
+        if 'metric_base_path' in cfg:
+            self.METRICBASEPATH = cfg['metric_base_path']
+
     def validate(self):
         # because we eliminated all whitespace, there shouldn't be any quotes
         # this happens more with windows nagios plugins
