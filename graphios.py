@@ -55,7 +55,7 @@ spool_directory = '/var/spool/nagios/graphios'
 
 # graphios log info
 log_file = ''
-log_max_size = 25165824         # 24 MB
+log_max_size = 24
 
 # by default we will check the current path for graphios.cfg, if config_file
 # is passed as a command line argument we will use that instead.
@@ -257,7 +257,7 @@ def verify_options(opts):
         cfg["log_file"] = opts.log_file
     if cfg["log_file"] == "''" or cfg["log_file"] == "":
         cfg["log_file"] = "%s/graphios.log" % sys.path[0]
-    cfg["log_max_size"] = 25165824         # 24 MB
+    cfg["log_max_size"] = 24
     if opts.verbose:
         cfg["debug"] = True
         cfg["log_level"] = "logging.DEBUG"
@@ -309,8 +309,15 @@ def configure():
         print "log_max_size needs to be a integer"
         sys.exit(1)
 
+    # Convert cfg["log_max_size"] to bytes. Assume its already in bytes
+    # if its > 1000000
+    if cfg["log_max_size"] < 1000000:
+        log_max_bytes = cfg["log_max_size"]*1024*1024
+    else:
+        log_max_bytes = cfg["log_max_size"]
+
     log_handler = logging.handlers.RotatingFileHandler(
-        cfg["log_file"], maxBytes=cfg["log_max_size"], backupCount=4,
+        cfg["log_file"], maxBytes=log_max_bytes, backupCount=4,
         # encoding='bz2')
     )
     formatter = logging.Formatter(
