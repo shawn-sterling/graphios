@@ -125,9 +125,13 @@ class GraphiosMetric(object):
         self.HOSTSTATETYPE = ''         # HARD|SOFT
         self.SERVICESTATE = ''          # current state afa nagios is concerned
         self.SERVICESTATETYPE = ''      # HARD|SOFT
+        self.METRICBASEPATH = ''        # Establishes a root base path
         self.GRAPHITEPREFIX = ''        # graphios prefix
         self.GRAPHITEPOSTFIX = ''       # graphios suffix
         self.VALID = False              # if this metric is valid
+
+        if 'metric_base_path' in cfg:
+            self.METRICBASEPATH = cfg['metric_base_path']
 
     def validate(self):
         # because we eliminated all whitespace, there shouldn't be any quotes
@@ -148,6 +152,9 @@ class GraphiosMetric(object):
             else:
                 # not using service descriptions
                 if (
+                    # We should keep this logic and not check for a
+                    # base path here. Just because there's a base path
+                    # doesn't mean the metric should be considered valid
                     self.GRAPHITEPREFIX == "" and
                     self.GRAPHITEPOSTFIX == ""
                 ):
