@@ -533,7 +533,7 @@ class influxdb(object):
             path += "%s." % m.METRICBASEPATH
 
         if m.GRAPHITEPREFIX != "":
-            path += "%s.%s." % m.GRAPHITEPREFIX
+            path += "%s." % m.GRAPHITEPREFIX
 
         path += "%s." % m.HOSTNAME
 
