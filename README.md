@@ -373,6 +373,7 @@ be:
     ./graphios.py --spool-directory /var/spool/nagios/graphios \
     --log-file /tmp/graphios.log \
     --backend carbon \
+    --server 127.0.0.1:2004 \
     --test
 
 and if there are problems add
@@ -576,13 +577,17 @@ You should now be able to skip steps 2 and 3 on the configuration instructions.
 
 # OMD (Open Monitoring Distribution) Notes:
 
-* OMD 1.2x Setup Guide - Nightly OMD Build
-* Look at the following set of steps for earlier versions.
-* All steps below are assumed to be carried out under your OMD site's user.
+These instructions are for OMD >= 1.2x (including the current nightly builds).
 
-(1) Change the NPCD Setup for PNP4NAGIOS to Bulk Mode with NPCD instead of NPCDMOD by changing the symlink in ~/etc/nagios/nagios.d/pnp4nagios.cfg to point at ../../pnp4nagios/nagios_npcd.cfg instead of ../../pnp4nagios/nagios_npcdmod.cfg.
+__Note:__ All steps below are assumed to be carried out under your OMD site's user.
 
-(2) Update ~/etc/pnp4nagios/nagios_npcd.cfg 
+(1) Change PNP4NAGIOS to use "NPCD with Bulk Mode" instead of NPCDMOD. This is done by redirecting the symlink for pnp4nagios.cfg:
+
+<pre>
+ln -sf ~/etc/pnp4nagios/nagios_npcd.cfg ~/etc/nagios/nagios.d/pnp4nagios.cfg
+</pre>
+
+(2) Update ~/etc/pnp4nagios/nagios_npcd.cfg (remember to replace SITENAME).
 
 <pre>
 #
@@ -609,75 +614,7 @@ host_perfdata_file_processing_interval=15
 host_perfdata_file_processing_command=omd-process-host-perfdata-file
 </pre>
 
-(3) Update etc/nagios/conf.d/pnp4nagios.cfg
-
-<pre>
-define command{
-       command_name    omd-process-service-perfdata-file
-       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/service-perfdata /omd/sites/prod/var/pnp4nagios/spool/service-perfdata.$TIMET$ && cp /omd/sites/prod/var/pnp4nagios/spool/service-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
-}
-
-define command{
-       command_name    omd-process-host-perfdata-file
-       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ && cp /omd/sites/prod/var/pnp4nagios/spool/host-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
-}
-</pre>
-
-(4) Optional: If you don't want PNP4NAGIOS to ever see perfdata for checks that Graphios is exporting data for, you can modify the ~/etc/nagios/conf.d/pnp4nagios.cfg command lines to remove data with a grep. In the below case, we grep out a specific string (GRAPHITEPREFIX\:\:lustre) to remove perfdata containing that string. This involves a little move moving around of files, but nothing excessive and stops PNP4NAGIOS from trying to genearte RRD files with that data.
-
-<pre>
-define command{
-       command_name    omd-process-service-perfdata-file
-       #command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/service-perfdata /omd/sites/ssec/var/pnp4nagios/spool/service-perfdata.$TIMET$
-###GRAPHITE SETTING### ADDED REDIRECTION TO REMOVE exportstats
-       command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/service-perfdata /omd/sites/ssec/var/pnp4nagios/service-perfdata.$TIMET$ && /bin/cp /omd/sites/ssec/var/pnp4nagios/service-perfdata.$TIMET$ /omd/sites/ssec/var/graphios/spool/ && grep -v GRAPHITEPREFIX\:\:lustre /omd/sites/ssec/var/pnp4nagios/service-perfdata.$TIMET$ > /omd/sites/ssec/var/pnp4nagios/spool/service-perfdata.$TIMET$ && /bin/rm /omd/sites/ssec/var/pnp4nagios/service-perfdata.*
-
-}
-
-define command{
-       command_name    omd-process-host-perfdata-file
-       #command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/host-perfdata /omd/sites/ssec/var/pnp4nagios/spool/host-perfdata.$TIMET$
-####GRAPHITE SETTING### ADDED REDIRECTION TO REMOVE exportstats
-       command_line    /bin/mv /omd/sites/ssec/var/pnp4nagios/host-perfdata /omd/sites/ssec/var/pnp4nagios/host-perfdata.$TIMET$ && /bin/cp /omd/sites/ssec/var/pnp4nagios/host-perfdata.$TIMET$ /omd/sites/ssec/var/graphios/spool/ && grep -v GRAPHITEPREFIX\:\:lustre /omd/sites/ssec/var/pnp4nagios/host-perfdata.$TIMET$ > /omd/sites/ssec/var/pnp4nagios/spool/host-perfdata.$TIMET$ && /bin/rm /omd/sites/ssec/var/pnp4nagios/host-perfdata.*
-</pre>
-
-* UPDATE - OMD 5.6 was released on 10/02/2012
-* The only changes that you would need to make to 5.6 is add the changes in step 2 (omd-process-host/service-perfdata-file commands)
-
-OMD 5.6 is different form earlier versions in the way NPCD is setup. (Download the 5.6 source code to see the config differences)
-This guide assumes you are using OMD 5.4 (Current Stable Release)
-
-* Warning I'm not sure of the impacts that this might have when actually upgrading to 5.6
-* Make sure to update SITENAME with your OMD site
-
-(1) Update OMD 5.4's etc/pnp4nagios/nagios_npcdmod.cfg so that it looks like this:
-
-<pre>
-#
-# PNP4Nagios Bulk Mode with npcd
-#
-process_performance_data=1
-
-#
-# service performance data
-#
-service_perfdata_file=/omd/sites/SITENAME/var/pnp4nagios/service-perfdata
-service_perfdata_file_template=DATATYPE::SERVICEPERFDATA\tTIMET::$TIMET$\tHOSTNAME::$HOSTNAME$\tSERVICEDESC::$SERVICEDESC$\tSERVICEPERFDATA::$SERVICEPERFDATA$\tSERVICECHECKCOMMAND::$SERVICECHECKCOMMAND$\tHOSTSTATE::$HOSTSTATE$\tHOSTSTATETYPE::$HOSTSTATETYPE$\tSERVICESTATE::$SERVICESTATE$\tSERVICESTATETYPE::$SERVICESTATETYPE$\tGRAPHITEPREFIX::$_SERVICEGRAPHITEPREFIX$\tGRAPHITEPOSTFIX::$_SERVICEGRAPHITEPOSTFIX$
-service_perfdata_file_mode=a
-service_perfdata_file_processing_interval=15
-service_perfdata_file_processing_command=omd-process-service-perfdata-file
-
-#
-# host performance data
-#
-host_perfdata_file=/omd/sites/SITENAME/var/pnp4nagios/host-perfdata
-host_perfdata_file_template=DATATYPE::HOSTPERFDATA\tTIMET::$TIMET$\tHOSTNAME::$HOSTNAME$\tHOSTPERFDATA::$HOSTPERFDATA$\tHOSTCHECKCOMMAND::$HOSTCHECKCOMMAND$\tHOSTSTATE::$HOSTSTATE$\tHOSTSTATETYPE::$HOSTSTATETYPE$\tGRAPHITEPREFIX::$_HOSTGRAPHITEPREFIX$\tGRAPHITEPOSTFIX::$_HOSTGRAPHITEPOSTFIX$
-host_perfdata_file_mode=a
-host_perfdata_file_processing_interval=15
-host_perfdata_file_processing_command=omd-process-host-perfdata-file
-</pre>
-
-(2) Update etc/nagios/conf.d/pnp4nagios.cfg
+(3) Update etc/nagios/conf.d/pnp4nagios.cfg (remember to replace SITENAME).
 
 <pre>
 define command{
@@ -687,20 +624,33 @@ define command{
 
 define command{
        command_name    omd-process-host-perfdata-file
-       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$ && cp /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$ /omd/sites/prod/var/graphios/spool/
+       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$ && cp /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$ /omd/sites/SITENAME/var/graphios/spool/
 }
 </pre>
 
+(4) Optional: If you don't want PNP4NAGIOS to ever see perfdata for checks that Graphios is exporting data for, you can modify the ~/etc/nagios/conf.d/pnp4nagios.cfg command lines to remove data with a grep. In the below case, we grep out a specific string (GRAPHITEPREFIX\:\:lustre) to remove perfdata containing that string. This involves a little move moving around of files, but nothing excessive and stops PNP4NAGIOS from trying to genearte RRD files with that data. (Again remember to change SITENAME).
+
+<pre>
+define command{
+       command_name    omd-process-service-perfdata-file
+       #command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/service-perfdata /omd/sites/SITENAME/var/pnp4nagios/spool/service-perfdata.$TIMET$
+###GRAPHITE SETTING### ADDED REDIRECTION TO REMOVE exportstats
+       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/service-perfdata /omd/sites/SITENAME/var/pnp4nagios/service-perfdata.$TIMET$ && /bin/cp /omd/sites/SITENAME/var/pnp4nagios/service-perfdata.$TIMET$ /omd/sites/SITENAME/var/graphios/spool/ && grep -v GRAPHITEPREFIX\:\:lustre /omd/sites/SITENAME/var/pnp4nagios/service-perfdata.$TIMET$ > /omd/sites/SITENAME/var/pnp4nagios/spool/service-perfdata.$TIMET$ && /bin/rm /omd/sites/SITENAME/var/pnp4nagios/service-perfdata.*
+
+}
+
+define command{
+       command_name    omd-process-host-perfdata-file
+       #command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$
+####GRAPHITE SETTING### ADDED REDIRECTION TO REMOVE exportstats
+       command_line    /bin/mv /omd/sites/SITENAME/var/pnp4nagios/host-perfdata /omd/sites/SITENAME/var/pnp4nagios/host-perfdata.$TIMET$ && /bin/cp /omd/sites/SITENAME/var/pnp4nagios/host-perfdata.$TIMET$ /omd/sites/SITENAME/var/graphios/spool/ && grep -v GRAPHITEPREFIX\:\:lustre /omd/sites/SITENAME/var/pnp4nagios/host-perfdata.$TIMET$ > /omd/sites/SITENAME/var/pnp4nagios/spool/host-perfdata.$TIMET$ && /bin/rm /omd/sites/SITENAME/var/pnp4nagios/host-perfdata.*
+</pre>
 
 # Check_MK Notes:
 
-How to set custom variables for services and hosts using check_mk config files.
+How to set custom variables for services and hosts using check_mk config files. (For OMD please don't overlook the notes above).
 
-(1) For host perf data, its simple just create a new file named "extra_host_conf.mk" (inside your check_mk conf.d dir)
-
-(2) Run check_mk -O to generate your updated configs and reload Nagios
-
-(3) Test via check_mk -N hostname | less, to see if your prefix or postfix is there.
+(1) For host perf data just create a new file named "extra_host_conf.mk" inside your check_mk conf.d dir.
 
 <pre>
 extra_host_conf["_graphiteprefix"] = [
@@ -708,12 +658,35 @@ extra_host_conf["_graphiteprefix"] = [
 ]
 </pre>
 
-For service perf data create a file called, "extra_service_conf.mk", remember you can use your host tags or any of kinds of tricks with check_mk config files.
+(2) Run check_mk -O to updated and reload Nagios.
+
+(3) Test via "check_mk -N hostname | less", to see if your prefix or postfix is there.
+
+For service perf data create a file called, "extra_service_conf.mk". Remember you can use your host tags or any of kinds of tricks with check_mk config files.
 
 <pre>
 extra_service_conf["_graphiteprefix"] = [
   ( "DESIREDPREFIX.check_mk", ALL_HOSTS, ["Check_MK"]),
   ( "DESIREDPREFIX.cpu.load", ALL_HOSTS, ["CPU load"]),
+]
+</pre>
+
+- - -
+__Tip__: An easy way to produce graphite keys in the format: `$company.$server.$metric` is:
+
+(1) Set `metric_base_path` to $company in `graphios.cfg`.
+
+(2) In your 'extra' check_mk config files set your graphiteprefix to $metric, and set no graphiteprefix.
+
+<pre>
+extra_host_conf["_graphitepostfix"] = [
+  # e.g. mycompany.server123.ping
+  ( "ping", ALL_HOSTS),
+]
+
+extra_service_conf["_graphitepostfix"] = [
+  # e.g. mycompany.server123.cpu.load
+  ( "cpu.load", ALL_HOSTS, ["CPU load"]),
 ]
 </pre>
 
