@@ -86,6 +86,8 @@ sends nagios performance data to carbon.
 
 parser.add_option('-v', "--verbose", action="store_true", dest="verbose",
                   help="sets logging to DEBUG level")
+parser.add_option('-q', "--quiet", action="store_true", dest="quiet",
+                  help="sets logging to WARNING level")
 parser.add_option("--spool-directory", dest="spool_directory",
                   default=spool_directory,
                   help="where to look for nagios performance data")
@@ -275,6 +277,9 @@ def verify_options(opts):
     if opts.verbose:
         cfg["debug"] = True
         cfg["log_level"] = "logging.DEBUG"
+    elif opts.quiet:
+        cfg["debug"] = False
+        cfg["log_level"] = "logging.WARNING"
     else:
         cfg["debug"] = False
         cfg["log_level"] = "logging.INFO"
