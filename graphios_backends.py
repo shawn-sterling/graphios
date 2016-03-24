@@ -87,6 +87,7 @@ class librato(object):
         path = re.sub(r"^\.", '', path)  # fix sources that begin in dot
         path = re.sub(r"\.$", '', path)  # fix sources that end in dot
         path = re.sub(r"\.\.", '.', path)  # fix sources with double dots
+        path = re.sub(r"['\"]", '.', path)  # fix sources with imbedded quotes
         return path
 
     def k_not_in_whitelist(self, k):
