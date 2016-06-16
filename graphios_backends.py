@@ -648,9 +648,9 @@ class influxdb09(influxdb):
 
         if self.influxdb_line_protocol:
             return "%s://%s/write?u=%s&p=%s&db=%s" % (self.scheme, server,
-                                                self.influxdb_user,
-                                                self.influxdb_password,
-                                                self.influxdb_db)
+                                                      self.influxdb_user,
+                                                      self.influxdb_password,
+                                                      self.influxdb_db)
         else:
             return "%s://%s/write?u=%s&p=%s" % (self.scheme, server,
                                                 self.influxdb_user,
@@ -664,21 +664,19 @@ class influxdb09(influxdb):
         else:
             return super(influxdb09, self).url_request(url, chunk)
 
-
     def format_metric(self, timestamp, path, tags, value):
-        if self.influxdb_line_protocol:
-            return '%s,%s value=%s %d' % (
-                    path,
-                    ','.join(['%s=%s' % (k, v) for k, v in tags.iteritems() if v]),
-                    value,
-                    timestamp * 10 ** 9
-                    )
-        else:
+        if not self.influxdb_line_protocol:
             return {
                     "timestamp": timestamp,
                     "measurement": path,
                     "tags": tags,
                     "fields": {"value": value}}
+        return '%s,%s value=%s %d' % (
+                path,
+                ','.join(['%s=%s' % (k, v) for k, v in tags.iteritems() if v]),
+                value,
+                timestamp * 10 ** 9
+                )
 
     def format_series(self, chunk):
         if self.influxdb_line_protocol:
@@ -710,7 +708,8 @@ class influxdb09(influxdb):
             tags = {"check": m.LABEL, "host": m.HOSTNAME}
             tags.update(self.influxdb_extra_tags)
 
-            perfdata.append(self.format_metric(int(m.TIMET), path, tags, value))
+            perfdata.append(self.format_metric(int(m.TIMET), path,
+                            tags, value))
 
         series_chunks = self.chunks(perfdata, self.influxdb_max_metrics)
         for chunk in series_chunks:
