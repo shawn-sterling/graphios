@@ -70,6 +70,15 @@ cfg = {}
 # backend global
 be = ""
 
+# available loglevels for graphios.cfg
+loglevels = {
+    'logging.DEBUG':    logging.DEBUG,
+    'logging.INFO':     logging.INFO,
+    'logging.WARNING':  logging.WARNING,
+    'logging.ERROR':    logging.ERROR,
+    'logging.CRITICAL': logging.CRITICAL
+}
+
 # options parsing
 parser = OptionParser("""usage: %prog [options]
 sends nagios performance data to carbon.
@@ -77,6 +86,8 @@ sends nagios performance data to carbon.
 
 parser.add_option('-v', "--verbose", action="store_true", dest="verbose",
                   help="sets logging to DEBUG level")
+parser.add_option('-q', "--quiet", action="store_true", dest="quiet",
+                  help="sets logging to WARNING level")
 parser.add_option("--spool-directory", dest="spool_directory",
                   default=spool_directory,
                   help="where to look for nagios performance data")
@@ -233,6 +244,11 @@ def verify_config(config_dict):
         for value in missing_values:
             print "%s\n" % value
         sys.exit(1)
+    if not config_dict['log_level'] in loglevels.keys():
+        print "Unknown loglevel: " + config_dict['log_level'] + '\n'
+        print "Available loglevels:"
+        print '\n'.join(sorted(loglevels.keys()))
+        sys.exit(1)
     if "spool_directory" in config_dict:
         spool_directory = config_dict['spool_directory']
 
@@ -261,6 +277,9 @@ def verify_options(opts):
     if opts.verbose:
         cfg["debug"] = True
         cfg["log_level"] = "logging.DEBUG"
+    elif opts.quiet:
+        cfg["debug"] = False
+        cfg["log_level"] = "logging.WARNING"
     else:
         cfg["debug"] = False
         cfg["log_level"] = "logging.INFO"
@@ -326,13 +345,13 @@ def configure():
     log_handler.setFormatter(formatter)
     log.addHandler(log_handler)
 
-    if "debug" in cfg and cfg["debug"] is True:
+    if cfg.get("debug") is True or cfg['log_level'] == 'logging.DEBUG':
         log.debug("adding streamhandler")
         log.setLevel(logging.DEBUG)
         log.addHandler(logging.StreamHandler())
         debug = True
     else:
-        log.setLevel(logging.INFO)
+        log.setLevel(loglevels[cfg['log_level']])
         debug = False
 
 
