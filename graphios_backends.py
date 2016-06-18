@@ -553,11 +553,15 @@ class influxdb(object):
         for i in xrange(0, len(l), n):
             yield l[i:i+n]
 
+    def url_request(self, url, chunk):
+        json_body = json.dumps(chunk)
+        req = urllib2.Request(url, json_body)
+        req.add_header('Content-Type', 'application/json')
+        return req
+
     def _send(self, server, chunk):
         self.log.debug("Connecting to InfluxDB at %s" % server)
-        json_body = json.dumps(chunk)
-        req = urllib2.Request(self.build_url(server), json_body)
-        req.add_header('Content-Type', 'application/json')
+        req = self.url_request(self.build_url(server), chunk)
 
         try:
             r = urllib2.urlopen(req, timeout=self.timeout)
@@ -630,15 +634,55 @@ class influxdb09(influxdb):
         else:
             self.influxdb_extra_tags = {}
 
+        try:
+            cfg['influxdb_line_protocol']
+            self.influxdb_line_protocol = cfg['influxdb_line_protocol']
+        except:
+            self.influxdb_line_protocol = False
+
     def build_url(self, server):
         """ Returns a url to specified InfluxDB-server """
         test_port = server.split(':')
         if len(test_port) < 2:
             server = "%s:%i" % (server, self.default_ports[self.scheme])
 
-        return "%s://%s/write?u=%s&p=%s" % (self.scheme, server,
-                                            self.influxdb_user,
-                                            self.influxdb_password)
+        if self.influxdb_line_protocol:
+            return "%s://%s/write?u=%s&p=%s&db=%s" % (self.scheme, server,
+                                                      self.influxdb_user,
+                                                      self.influxdb_password,
+                                                      self.influxdb_db)
+        else:
+            return "%s://%s/write?u=%s&p=%s" % (self.scheme, server,
+                                                self.influxdb_user,
+                                                self.influxdb_password)
+
+    def url_request(self, url, chunk):
+        if self.influxdb_line_protocol:
+            req = urllib2.Request(url, chunk)
+            req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+            return req
+        else:
+            return super(influxdb09, self).url_request(url, chunk)
+
+    def format_metric(self, timestamp, path, tags, value):
+        if not self.influxdb_line_protocol:
+            return {
+                    "timestamp": timestamp,
+                    "measurement": path,
+                    "tags": tags,
+                    "fields": {"value": value}}
+        return '%s,%s value=%s %d' % (
+                path,
+                ','.join(['%s=%s' % (k, v) for k, v in tags.iteritems() if v]),
+                value,
+                timestamp * 10 ** 9
+                )
+
+    def format_series(self, chunk):
+        if self.influxdb_line_protocol:
+            return '\n'.join(chunk)
+        else:
+            return {"database": self.influxdb_db, "points": chunk}
 
     def send(self, metrics):
         """ Connect to influxdb and send metrics """
@@ -664,15 +708,12 @@ class influxdb09(influxdb):
             tags = {"check": m.LABEL, "host": m.HOSTNAME}
             tags.update(self.influxdb_extra_tags)
 
-            perfdata.append({
-                            "timestamp": int(m.TIMET),
-                            "measurement": path,
-                            "tags": tags,
-                            "fields": {"value": value}})
+            perfdata.append(self.format_metric(int(m.TIMET), path,
+                            tags, value))
 
         series_chunks = self.chunks(perfdata, self.influxdb_max_metrics)
         for chunk in series_chunks:
-            series = {"database": self.influxdb_db, "points": chunk}
+            series = self.format_series(chunk)
             for s in self.influxdb_servers:
                 if not self._send(s, series):
                     ret = 0
