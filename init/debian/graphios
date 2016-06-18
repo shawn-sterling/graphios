@@ -19,18 +19,21 @@ prog="/usr/local/bin/graphios.py"
 # or use the command line options:
 #prog="/opt/nagios/bin/graphios.py --log-file=/dir/mylog.log --spool-directory=/dir/my/sool"
 GRAPHIOS_USER="nagios"
+NAME="graphios"
+DESC="nagios to graphite bridge"
 RETVAL=0
 
 start () {
         log_daemon_msg "Starting $DESC" "$NAME"
-        /usr/bin/sudo -u $GRAPHIOS_USER  "$prog" &
+        start-stop-daemon --start --quiet --name $(basename $prog) --user $GRAPHIOS_USER \
+		    --chuid $GRAPHIOS_USER --exec $prog --background
         log_end_msg $?
         echo
 }
 
 stop () {
         log_daemon_msg "Stopping $DESC" "$NAME"
-        killproc graphios.py
+        start-stop-daemon --stop --oknodo --quiet --name $(basename $prog) --user $GRAPHIOS_USER
         log_end_msg $?
         echo
 }
