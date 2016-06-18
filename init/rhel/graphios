@@ -33,7 +33,7 @@ start () {
 
 stop () {
         echo -n "Stopping $prog"
-        killproc graphios.py
+        killproc graphios
         RETVAL=$?
         [ $RETVAL -eq 0 ] && success || failure
         echo
